@@ -19,7 +19,7 @@
     "files": {
         "place": [
             {
-                "src": "*",
+                "src": "EasyBackuper/*",
                 "dest": "plugins/EasyBackuper/"
             }
         ]
