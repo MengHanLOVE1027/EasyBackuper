@@ -1,0 +1,10 @@
+{
+    "entry": "EasyBackuper.js",
+    "name": "EasyBackuper.js",
+    "type": "lse-quickjs",
+    "dependencies": [
+        {
+            "name": "legacy-script-engine-quickjs"
+        }
+    ]
+}

@@ -1,0 +1,13 @@
+{
+    "format_version": 2,
+    "tooth": "github.com/MengHanLOVE1027/EasyBackuper",
+    "version": "0.0.0",
+    "info": {
+        "name": "EasyBackuper",
+        "description": "BackupHelper的LSE-JS版本",
+        "author": "MengHanLOVE1027",
+        "tags": []
+    },
+    "commands": {},
+    "files": {}
+}
