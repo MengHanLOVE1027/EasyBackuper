@@ -1,6 +1,6 @@
 {
     "entry": "EasyBackuper.js",
-    "name": "EasyBackuper.js",
+    "name": "EasyBackuper",
     "type": "lse-quickjs",
     "dependencies": [
         {
