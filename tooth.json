@@ -4,10 +4,24 @@
     "version": "0.0.1",
     "info": {
         "name": "EasyBackuper",
-        "description": "BackupHelper的LSE-JS版本",
+        "description": "A LeviLamina plugin which is port from LiteLoaderBDS to help you backup more easily",
         "author": "MengHanLOVE1027",
-        "tags": []
+        "tags": [
+            "levilamina",
+            "lse",
+            "plugin"
+        ]
     },
-    "commands": {},
-    "files": {}
+    "asset_url": "https://github.com/MengHanLOVE1027/EasyBackuper/releases/download/v0.0.1/EasyBackuper-windows-x64.zip",
+    "prerequisites": {
+        "github.com/LiteLDev/LeviLamina": "0.8.x"
+    },
+    "files": {
+        "place": [
+            {
+                "src": "EasyBackuper/*",
+                "dest": "plugins/EasyBackuper/"
+            }
+        ]
+    }
 }
