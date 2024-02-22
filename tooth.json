@@ -12,7 +12,7 @@
             "plugin"
         ]
     },
-    "asset_url": "https://github.com/MengHanLOVE1027/EasyBackuper/releases/download/v0.0.1/EasyBackuper-windows-x64.zip",
+    "asset_url": "https://github.com/MengHanLOVE1027/EasyBackuper/archive/refs/tags/v0.0.1.zip",
     "prerequisites": {
         "github.com/LiteLDev/LeviLamina": "0.8.x"
     },
