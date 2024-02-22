@@ -1,5 +1,0 @@
-{
-    "name": "${pluginName}",
-    "entry": "${pluginFile}",
-    "type": "lse-quickjs"
-}
