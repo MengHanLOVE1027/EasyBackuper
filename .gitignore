@@ -1,0 +1,5 @@
+# 禁止上传exe文件
+*.exe
+
+# 禁止上传.vscode文件夹
+.vscode/
