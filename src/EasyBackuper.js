@@ -29,13 +29,34 @@ function test(a) {
     logger.log(a)
 }
 
+
 /**
  * 备份功能
  */
 function Backup() {
-    logger.log('123456')
+    mc.runcmdEx("save hold")
+
+    if (!File.exists("./backup")) {
+        File.mkdir("./backup")
+    } else {
+        File.copy("./worlds/Bedrock level/", "./backup")
+        var endingthing = File.copy("./worlds/Bedrock level/db/", "./backup")
+
+    // 检查是否成功备份
+    var check = setInterval(() => {
+        if (endingthing) {
+            logger.log('succes')
+            mc.runcmdEx("save resume")
+            clearInterval(check)
+        } else {
+            logger.log('wrong')
+            mc.runcmdEx("save resume")
+            clearInterval(check)
+        }}, 1000)
+    }
+
     // log(system.cmd("C:\\Users\\HeYuHan\\Desktop\\BDS\\plugins\\插件编写\\EasyBackuper\\lip.exe list"))
-    log(system.newProcess("C:\\Users\\HeYuHan\\Desktop\\BDS\\plugins\\插件编写\\EasyBackuper\\lip.exe list", (exit, out) => {log(exit, '\n', out)}))
+    // log(system.newProcess("C:\\Users\\HeYuHan\\Desktop\\BDS\\plugins\\插件编写\\EasyBackuper\\lip.exe list", (exit, out) => {log(exit, '\n', out)}))
 }
 
 /**
