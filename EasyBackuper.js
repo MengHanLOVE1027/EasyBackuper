@@ -105,7 +105,7 @@ function Backup() {
             }
         }
 
-
+        // 压缩存档(tmp文件夹)
         system.newProcess(`${seven_z_path} a -tzip ${backup_folder_path}\\archive_name.zip ${backup_tmp_path}\\`, (exit, out) => {
             log(exit, '\n', out)
             zip_return = exit
