@@ -1,5 +1,5 @@
-# 禁止上传exe文件
-*.exe
+# 禁止上传build文件夹
+build/
 
-# 禁止上传.vscode文件夹
-.vscode/
+7z.exe
+manifest.json
