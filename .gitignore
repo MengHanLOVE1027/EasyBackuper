@@ -2,4 +2,4 @@
 build/
 
 7z.exe
-manifest.json
+./manifest.json
