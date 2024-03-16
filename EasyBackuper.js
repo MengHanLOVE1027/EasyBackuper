@@ -69,75 +69,75 @@ function Backup() {
 
     if (!File.exists(backup_folder_path)) {
         File.mkdir(backup_folder_path)
-    } else {
-
-        // let delete_retrun = File.delete('./backup')
-        // if (delete_retrun) {
-        //     logger.log('delete succes')
-        // } else {
-        //     logger.log('delete wrong')
-        // }
-
-        // 检测tmp文件夹是否存在，清空tmp文件夹
-        if (File.exists(backup_tmp_path)) {
-            File.delete(backup_tmp_path)
-            File.mkdir(backup_tmp_path)
-        } else {
-            File.mkdir(backup_tmp_path)
-        }
-
-
-        for (let i = 0; i < world_folder_list.length; i++) {
-            let currentPath = world_folder_path + world_folder_list[i];
-            logger.log(`Processing: ${world_folder_list[i]} ${currentPath}`);
-
-            // 检查是否为目录
-            if (File.checkIsDir(currentPath)) {
-                // 创建备份目录
-                let backupDirPath = backup_tmp_path + world_folder_list[i];
-                File.mkdir(backupDirPath);
-
-                // 递归复制子目录
-                copy_return = copyDirectory(currentPath, backupDirPath);
-            } else {
-                // 如果是文件，直接复制
-                File.copy(currentPath, backup_tmp_path);
-            }
-        }
-
-        // 压缩存档(tmp文件夹)
-        system.newProcess(`${seven_z_path} a -tzip ${backup_folder_path}\\archive_name.zip ${backup_tmp_path}\\`, (exit, out) => {
-            log(exit, '\n', out)
-            zip_return = exit
-        })
-
-
-        // 检查是否复制成功
-        let check_copy = setInterval(() => {
-            if (copy_return) {
-                logger.log('Copy succes')
-                mc.runcmdEx("save resume") // 恢复存档写入
-                clearInterval(check_copy) // 退出循环函数
-            } else {
-                logger.log('Copy wrong')
-                mc.runcmdEx("save resume") // 恢复存档写入
-                clearInterval(check_copy) // 退出循环函数
-            }
-        }, 100)
-
-        // 检查是否压缩成功
-        let check_zip = setInterval(() => {
-            if (zip_return == 0) {
-                logger.log('Zip succes')
-                File.delete(backup_tmp_path)
-                clearInterval(check_zip) // 退出循环函数
-            } else if (zip_return == 1) {
-                logger.log('Zip wrong')
-                File.delete(backup_tmp_path)
-                clearInterval(check_zip) // 退出循环函数
-            }
-        }, 100)
     }
+
+    // let delete_retrun = File.delete('./backup')
+    // if (delete_retrun) {
+    //     logger.log('delete succes')
+    // } else {
+    //     logger.log('delete wrong')
+    // }
+
+    // 检测tmp文件夹是否存在，清空tmp文件夹
+    if (File.exists(backup_tmp_path)) {
+        File.delete(backup_tmp_path)
+        File.mkdir(backup_tmp_path)
+    } else {
+        File.mkdir(backup_tmp_path)
+    }
+
+
+    for (let i = 0; i < world_folder_list.length; i++) {
+        let currentPath = world_folder_path + world_folder_list[i];
+        logger.log(`Processing: ${world_folder_list[i]} ${currentPath}`);
+
+        // 检查是否为目录
+        if (File.checkIsDir(currentPath)) {
+            // 创建备份目录
+            let backupDirPath = backup_tmp_path + world_folder_list[i];
+            File.mkdir(backupDirPath);
+
+            // 递归复制子目录
+            copy_return = copyDirectory(currentPath, backupDirPath);
+        } else {
+            // 如果是文件，直接复制
+            File.copy(currentPath, backup_tmp_path);
+        }
+    }
+
+    // 压缩存档(tmp文件夹)
+    system.newProcess(`${seven_z_path} a -tzip ${backup_folder_path}\\archive_name.zip ${backup_tmp_path}\\`, (exit, out) => {
+        log(exit, '\n', out)
+        zip_return = exit
+    })
+
+
+    // 检查是否复制成功
+    let check_copy = setInterval(() => {
+        if (copy_return) {
+            logger.log('Copy succes')
+            mc.runcmdEx("save resume") // 恢复存档写入
+            clearInterval(check_copy) // 退出循环函数
+        } else {
+            logger.log('Copy wrong')
+            mc.runcmdEx("save resume") // 恢复存档写入
+            clearInterval(check_copy) // 退出循环函数
+        }
+    }, 100)
+
+    // 检查是否压缩成功
+    let check_zip = setInterval(() => {
+        if (zip_return == 0) {
+            logger.log('Zip succes')
+            File.delete(backup_tmp_path)
+            clearInterval(check_zip) // 退出循环函数
+        } else if (zip_return == 1) {
+            logger.log('Zip wrong')
+            File.delete(backup_tmp_path)
+            clearInterval(check_zip) // 退出循环函数
+        }
+    }, 100)
+
 
     // log(system.cmd("C:\\Users\\HeYuHan\\Desktop\\BDS\\plugins\\插件编写\\EasyBackuper\\lip.exe list"))
     // log(system.newProcess("C:\\Users\\HeYuHan\\Desktop\\BDS\\plugins\\插件编写\\EasyBackuper\\lip.exe list", (exit, out) => {log(exit, '\n', out)}))
