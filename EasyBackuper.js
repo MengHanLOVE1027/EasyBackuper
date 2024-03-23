@@ -22,7 +22,7 @@ ll.registerPlugin(
 // 声明常量
 const plugin_name = plugin.Name,
     author = plugin.Other.Author,
-    plugin_version = "v0.0.6-betaaa",
+    plugin_version = "v0.0.6-beta",
     description = `简单化的LSE - JS备份插件`,
     last_edit_date = "2024-3-2 18:00",
     update_log = `什么都没有哦~`,
