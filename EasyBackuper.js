@@ -1,22 +1,33 @@
 // LiteLoader-AIDS automatic generated
-/// <reference path="c:\Users\HeYuHan\.liteloader/dts/HelperLib-master/src/index.d.ts"/>
+/// <reference path="c:\Users\HeYuHan\LiteDev/dts/HelperLib-master/src/index.d.ts"/>
 
-
+// 注册插件
+const plugin = {
+    Name: "EasyBackuper",
+    Introduction: "简单化的LSE - JS备份插件 v0.0.6-beta 作者: 梦涵LOVE",
+    Version: [0, 0, 6],
+    Other: {
+        Author: "梦涵LOVE",
+        Github: "https://github.com/MengHanLOVE1027/EasyBackuper",
+        License: "GPL-3.0 license",
+    },
+};
 ll.registerPlugin(
-    /* name */ "EasyBackuper",
-    /* introduction */ "简单化的LSE - JS备份插件 v0.0.6-beta 作者: 梦涵LOVE",
-    /* version */[0, 0, 6],
-    /* otherInformation */ "作者: 梦涵LOVE"
-)
+    plugin.Name,
+    plugin.Introduction,
+    plugin.Version,
+    plugin.Other
+);
 
-const plugin_name = "EasyBackuper",
-    author = '梦涵LOVE',
+// 声明常量
+const plugin_name = plugin.Name,
+    author = plugin.Other.Author,
     plugin_version = "v0.0.6-beta",
     description = `简单化的LSE - JS备份插件`,
     last_edit_date = "2024-3-2 18:00",
     update_log = `什么都没有哦~`,
     plugin_installed_sucess = `${description} 安装成功！`,
-    github_storehouse = "NOPE",
+    github_storehouse = plugin.Other.Github,
     the_helps = `No ANY HELP FOR YOU ALL!!!`,
     copyright = "务必保留原作者信息！！！！！",
     last_log = `${plugin_name}(LLSE - JS版) - ${description}`,
