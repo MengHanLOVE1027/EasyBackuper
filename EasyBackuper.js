@@ -11,34 +11,98 @@ const plugin = {
         Github: "https://github.com/MengHanLOVE1027/EasyBackuper",
         License: "GPL-3.0 license",
     },
-};
-ll.registerPlugin(
-    plugin.Name,
-    plugin.Introduction,
-    plugin.Version,
-    plugin.Other
-);
+}
+// LL3弃用并改用manifest.json加载插件信息
+// ll.registerPlugin(
+//     plugin.Name,
+//     plugin.Introduction,
+//     plugin.Version,
+//     plugin.Other
+// )
 
 // 声明常量
-const plugin_name = plugin.Name,
-    author = plugin.Other.Author,
+const plugin_name = "EasyBackuper",
     plugin_version = "v0.0.6-beta",
-    description = `简单化的LSE - JS备份插件`,
-    last_edit_date = "2024-3-2 18:00",
-    update_log = `什么都没有哦~`,
-    plugin_installed_sucess = `${description} 安装成功！`,
-    github_storehouse = plugin.Other.Github,
-    the_helps = `No ANY HELP FOR YOU ALL!!!`,
-    copyright = "务必保留原作者信息！！！！！",
-    last_log = `${plugin_name}(LLSE - JS版) - ${description}`,
-    cmd_name = "easybackuper",
-    cmd_alias = "backup",
+    cmd_name = "backup",
+    cmd_alias = "easybackuper",
+    plugin_path = `./plugins/${plugin_name}`,
 
-    backup_folder_path = ".\\backup\\", // 备份路径
-    backup_tmp_path = ".\\backup_tmp\\", // 临时复制解压缩路径
-    world_level_name = "Bedrock level", // 存档名称
-    world_folder_path = `.\\worlds\\${world_level_name}\\`, // 存档路径
-    seven_z_path = `.\\plugins\\${plugin_name}\\7z.exe`
+
+    backup_tmp_path = "./backup_tmp/", // 临时复制解压缩路径
+    world_level_name = /level-name=(.*)/.exec(File.readFrom('./server.properties'))[1], // 获取存档名称
+    world_folder_path = `./worlds/${world_level_name}/` // 存档路径
+exe_7z_path = `${plugin_path}/7z.exe`
+
+
+// 配置文件初始化
+const pluginConfigFile = {
+    Language: "zh_CN",
+    BackupFolderPath: "./backup/",
+    Debug_MoreLogs: false
+}
+// i18n国际化文件初始化
+const i18nLangFile = {
+    localeName: {
+        src: "translation",
+    },
+    zh_CN: {
+        test: "测试",
+        loaded_text_author: "作者",
+        loaded_text_author_nickname: "梦涵LOVE",
+        loaded_text_version: "版本",
+        loaded_text_description: "简单化的LSE - JS备份插件",
+        loaded_text_plugin_installed_success: "EasyBackuper 安装成功！",
+        loaded_text_the_helps: "No ANY HELP FOR YOU ALL!",
+        loaded_text_copyright: "务必保留原作者信息！",
+        loaded_text_plugins_github_storehouse: "GitHub 仓库",
+        loaded_text_plugins_github_storehouse_link: "https://github.com/MengHanLOVE1027/EasyBackuper",
+        loaded_text_the_latest_log: "EasyBackuper(LLSE - JS) - 简单化的LSE - JS备份插件",
+        init_config_file_success: "初始化文件成功",
+        backup_processing: "操作中：",
+        backup_check_copying: "拷贝中...",
+        backup_check_copy_success: "拷贝成功",
+        backup_check_copy_wrong: "拷贝出错",
+        backup_check_compressing: "压缩中...",
+        backup_check_compress_success: "压缩成功",
+        backup_check_compress_wrong: "压缩出错",
+    },
+    en_US: {
+        test: "test",
+        loaded_text_author: "Author",
+        loaded_text_author_nickname: "MengHanLOVE",
+        loaded_text_version: "Version",
+        loaded_text_description: "Simplistic LSE - JS backup plugin.",
+        loaded_text_plugin_installed_success: "EasyBackuper has been installed.",
+        loaded_text_the_helps: "No ANY HELP FOR YOU ALL!",
+        loaded_text_copyright: "Please keep the original author information!",
+        loaded_text_plugins_github_storehouse: "Github Repository",
+        loaded_text_plugins_github_storehouse_link: "https://github.com/MengHanLOVE1027/EasyBackuper",
+        loaded_text_the_latest_log: "EasyBackuper(LLSE - JS) - Simplistic LSE - JS backup plugin",
+        init_config_file_success: "Init Configs Success",
+        backup_processing: "Processing: ",
+        backup_check_copying: "Copying...",
+        backup_check_copy_success: "Copy Success",
+        backup_check_copy_wrong: "Copy Wrong",
+        backup_check_compressing: "Compressing...",
+        backup_check_compress_success: "Compress Success",
+        backup_check_compress_wrong: "Compress Wrong",
+    },
+}
+// 创建配置文件
+let pluginConfig = new JsonConfigFile(
+    plugin_path + `/config/${plugin_name}.json`,
+    JSON.stringify(pluginConfigFile)
+)
+let i18nLangConfig = new JsonConfigFile(
+    plugin_path + "/i18n/translation.json",
+    JSON.stringify(i18nLangFile)
+)
+
+// 加载i18n国际化文件
+let i18nLocaleName = pluginConfig.get("Language")
+i18n.load(plugin_path + "/i18n/translation.json", i18nLocaleName)
+
+
 
 
 /**
@@ -46,23 +110,27 @@ const plugin_name = plugin.Name,
  */
 function copyDirectory(src, dest) {
     // 获取源目录下的所有文件和目录
-    let files = File.getFilesList(src);
+    let files = File.getFilesList(src)
     for (let file of files) {
-        let srcPath = src + '\\' + file;
-        let destPath = dest + '\\' + file;
+        let srcPath = src + '/' + file
+        let destPath = dest + '/' + file
 
         // 检查是否为目录
         if (File.checkIsDir(srcPath)) {
             // 创建目标目录
-            let backupSubDirPath = dest + '\\' + file;
-            File.mkdir(backupSubDirPath);
-            logger.log(backupSubDirPath)
+            let backupSubDirPath = dest + '/' + file
+            File.mkdir(backupSubDirPath)
             // 递归复制子目录
-            copyDirectory(srcPath, backupSubDirPath);
+            copyDirectory(srcPath, backupSubDirPath)
         } else {
-            logger.log(srcPath + " ==> " + destPath)
+
+            // 调试信息(在配置文件中Debug_MoreLogs开启)
+            if (pluginConfig.get("Debug_MoreLogs")) {
+                logger.log(srcPath + " ==> " + destPath)
+            }
+
             // 如果是文件，则复制文件
-            File.copy(srcPath, dest);
+            File.copy(srcPath, dest)
         }
     }
     return true
@@ -73,21 +141,16 @@ function copyDirectory(src, dest) {
  */
 function Backup() {
     let world_folder_list = File.getFilesList(world_folder_path)
-    let copy_return, zip_return
+    let copy_return, compress_return
 
     // 暂停存档写入
-    log(mc.runcmdEx("save hold"))
+    mc.runcmdEx("save hold")
+    logger.log(i18n.get("backup_check_copying")) // 提示信息
 
-    if (!File.exists(backup_folder_path)) {
-        File.mkdir(backup_folder_path)
+    // 创建备份文件夹
+    if (!File.exists(pluginConfig.get("BackupFolderPath"))) {
+        File.mkdir(pluginConfig.get("BackupFolderPath"))
     }
-
-    // let delete_retrun = File.delete('./backup')
-    // if (delete_retrun) {
-    //     logger.log('delete succes')
-    // } else {
-    //     logger.log('delete wrong')
-    // }
 
     // 检测tmp文件夹是否存在，清空tmp文件夹
     if (File.exists(backup_tmp_path)) {
@@ -99,96 +162,144 @@ function Backup() {
 
 
     for (let i = 0; i < world_folder_list.length; i++) {
-        let currentPath = world_folder_path + world_folder_list[i];
-        logger.log(`Processing: ${world_folder_list[i]} ${currentPath}`);
+        let currentPath = world_folder_path + world_folder_list[i]
+
+        // 调试信息(在配置文件中Debug_MoreLogs开启)
+        if (pluginConfig.get("Debug_MoreLogs")) {
+            logger.log(i18n.get("backup_processing") + `${world_folder_list[i]} --> ${currentPath}`)
+        }
 
         // 检查是否为目录
         if (File.checkIsDir(currentPath)) {
             // 创建备份目录
-            let backupDirPath = backup_tmp_path + world_folder_list[i];
-            File.mkdir(backupDirPath);
+            let backupDirPath = backup_tmp_path + world_folder_list[i]
+            File.mkdir(backupDirPath)
 
             // 递归复制子目录
-            copy_return = copyDirectory(currentPath, backupDirPath);
+            copy_return = copyDirectory(currentPath, backupDirPath)
         } else {
             // 如果是文件，直接复制
-            File.copy(currentPath, backup_tmp_path);
+            File.copy(currentPath, backup_tmp_path)
         }
     }
 
+    // 获取当前时间
+    let archive_name = system.getTimeObj().Y + '_' +
+        system.getTimeObj().M + '_' +
+        system.getTimeObj().D + '=' +
+        system.getTimeObj().h + '-' +
+        system.getTimeObj().m + '-' +
+        system.getTimeObj().s + `[${world_level_name}]`
+
     // 压缩存档(tmp文件夹)
-    system.newProcess(`${seven_z_path} a -tzip ${backup_folder_path}\\archive_name.zip ${backup_tmp_path}\\`, (exit, out) => {
-        log(exit, '\n', out)
-        zip_return = exit
+    system.newProcess(`${exe_7z_path} a -tzip ` + '"' + pluginConfig.get("BackupFolderPath") + `/${archive_name}` + '"' + ` ${backup_tmp_path}/`, (exit, out) => {
+        logger.log(i18n.get("backup_check_compressing")) // 提示信息
+
+        // 调试信息(在配置文件中Debug_MoreLogs开启)
+        if (pluginConfig.get("Debug_MoreLogs")) {
+            log(exit, '\n', out)
+        }
+
+        compress_return = exit
     })
 
 
     // 检查是否复制成功
     let check_copy = setInterval(() => {
         if (copy_return) {
-            logger.log('Copy succes')
+            logger.log(i18n.get("backup_check_copy_success"))
             mc.runcmdEx("save resume") // 恢复存档写入
             clearInterval(check_copy) // 退出循环函数
         } else {
-            logger.log('Copy wrong')
+            logger.log(i18n.get("backup_check_copy_wrong"))
             mc.runcmdEx("save resume") // 恢复存档写入
             clearInterval(check_copy) // 退出循环函数
         }
     }, 100)
 
     // 检查是否压缩成功
-    let check_zip = setInterval(() => {
-        if (zip_return == 0) {
-            logger.log('Zip succes')
+    let check_compress = setInterval(() => {
+        if (compress_return == 0) {
+            logger.log(i18n.get("backup_check_compress_success"))
             File.delete(backup_tmp_path)
-            clearInterval(check_zip) // 退出循环函数
-        } else if (zip_return == 1) {
-            logger.log('Zip wrong')
+            clearInterval(check_compress) // 退出循环函数
+        } else if (compress_return == 1) {
+            logger.log(i18n.get("backup_check_compress_wrong"))
             File.delete(backup_tmp_path)
-            clearInterval(check_zip) // 退出循环函数
+            clearInterval(check_compress) // 退出循环函数
         }
     }, 100)
 
 
-    // log(system.cmd("C:\\Users\\HeYuHan\\Desktop\\BDS\\plugins\\插件编写\\EasyBackuper\\lip.exe list"))
-    // log(system.newProcess("C:\\Users\\HeYuHan\\Desktop\\BDS\\plugins\\插件编写\\EasyBackuper\\lip.exe list", (exit, out) => {log(exit, '\n', out)}))
+    // log(system.cmd("C:/Users/HeYuHan/Desktop/BDS/plugins/插件编写/EasyBackuper/lip.exe list"))
+    // log(system.newProcess("C:/Users/HeYuHan/Desktop/BDS/plugins/插件编写/EasyBackuper/lip.exe list", (exit, out) => {log(exit, '\n', out)}))
 }
 
 /**
  * 注册指令
  */
 function RegisterCmd() {
-    const cmd = mc.newCommand(cmd_name, description, PermType.GameMasters)
+    const cmd = mc.newCommand(cmd_name, i18n.get("loaded_text_description"), PermType.GameMasters)
     cmd.setAlias(cmd_alias) // 设置别名
 
-    // cmd.setEnum("BackupAction") // 添加枚举选项
+    cmd.setEnum("ReloadAction", ["reload"]) // 添加枚举选项
+    cmd.setEnum("InitConfig", ["init"]) // 同上
 
-    // cmd.mandatory("action", ParamType.Enum, "BackupAction", 1) // 赋予指令选项属性(展开枚举选项,必选参数)
+    cmd.mandatory("action", ParamType.Enum, "ReloadAction", 1) // 赋予指令选项属性(展开枚举选项,必选参数)
+    cmd.mandatory("action", ParamType.Enum, "InitConfig", 1) // 同上
+
+    // cmd.optional("name", ParamType.RawText) // 同上
     // cmd.optional("abcd", ParamType.RawText) // 同上(可选)
 
     cmd.overload([])
-    // cmd.overload(["BackupAction", "abcd"]) // 指令重载(必须有的且我不理解的东西)
+    // cmd.overload(["ReloadAction", "name", "abcd"]) // 指令重载(必须有的且我不理解的东西)
+    cmd.overload(["ReloadAction"]) // 指令重载(必须有的且我不理解的东西)
+    cmd.overload(["InitConfig"]) // 同上
 
-    cmd.setCallback((_cmd, _origin, _output, _results) => {
+    cmd.setCallback((_cmd, _origin, output, results) => {
         // 如果有选项就进行判断
-        // switch (results.action) {
-        //     case "":
-        //         return output.success(`start "${results.name}"`)
-        // }
+        switch (results.action) {
+            case "reload": // 重载插件配置
+                let a = pluginConfig.reload()
+                let b = i18nLangConfig.reload()
+                let i18nLocaleName = pluginConfig.get("Language")
+                i18n.load(plugin_path + "/i18n/translation.json", i18nLocaleName)
+                return output.success(`Reloaded ${a} ${b}`)
+
+            case "init": // 初始化配置文件
+                logger.log('testing...')
+                if (File.exists(plugin_path + "/i18n/translation.json")) {
+                    File.delete(plugin_path + "/i18n/translation.json")
+                }
+                if (File.exists(plugin_path + `/config/${plugin_name}.json`)) {
+                    File.delete(plugin_path + `/config/${plugin_name}.json`)
+                }
+
+                // 创建配置文件
+                new JsonConfigFile(
+                    plugin_path + `/config/${plugin_name}.json`,
+                    JSON.stringify(pluginConfigFile)
+                )
+                new JsonConfigFile(
+                    plugin_path + "/i18n/translation.json",
+                    JSON.stringify(i18nLangFile)
+                )
+
+                return output.success(i18n.get("init_config_file_success"))
+        }
 
         // 默认/backup指令后执行的代码
-        // output.success(`Hello??? Any people there?`)
         Backup()
     })
-
     cmd.setup() // 指令初始化(必须)
+
 }
 
 /**
  * 加载插件
  */
 function Loadplugin() {
-    logger.setTitle("\x1b[32mEasyBackuper\x1b[0m") // 设置日志头
+    logger.setTitle(`\x1b[32m${plugin_name}\x1b[0m`) // 设置日志头
     logger.log(`
 ===============================================================================================================
      ********                             ******                     **            
@@ -199,19 +310,17 @@ function Loadplugin() {
     /**       **////**  /////**   **     /*    /** **////** /**   **/**/** /**  /** /**///  /**////  /**   
     /********//******** ******   **      /******* //********//***** /**//**//****** /**     //******/***   
     ////////  //////// //////   //       ///////   ////////  /////  //  //  /////// /*     ////// ///    
-                            \x1b[33m作者：${author}                             \x1b[13047m版本：${plugin_version}\x1b[0m
+                            \x1b[33m`+ i18n.get("loaded_text_author") + `：` + i18n.get("loaded_text_author_nickname") + `                             \x1b[13047m` + i18n.get("loaded_text_version") + `：${plugin_version}\x1b[0m
 ===============================================================================================================`)
 
 
     logger.log(`\x1b[36m==============================${plugin_name}==============================\x1b[0m`)
-    logger.log(`\x1b[3743m${plugin_installed_sucess}\x1b[0m`)
-    logger.log(`\x1b[3743m版本: \x1b[13047m${plugin_version}\x1b[0m`)
-    logger.log(`\x1b[3743m更新日志: ${update_log}\x1b[0m`)
-    logger.log(`\x1b[3743m最后更新于 ${last_edit_date}\x1b[0m`)
-    logger.log(`\x1b[135m${the_helps}\x1b[0m`)
-    logger.log(`\x1b[31m${copyright}\x1b[0m`)
-    logger.log(`\x1b[33m插件仓库：${github_storehouse}\x1b[0m`)
-    logger.log(`\x1b[36m${last_log}\x1b[0m  \x1b[33m作者：${author}\x1b[0m`)
+    logger.log(`\x1b[3743m` + i18n.get("loaded_text_plugin_installed_success") + `\x1b[0m`)
+    logger.log(`\x1b[3743m` + i18n.get("loaded_text_version") + `: \x1b[13047m${plugin_version}\x1b[0m`)
+    logger.log(`\x1b[135m` + i18n.get("loaded_text_the_helps") + `\x1b[0m`)
+    logger.log(`\x1b[31m` + i18n.get("loaded_text_copyright") + `\x1b[0m`)
+    logger.log(`\x1b[33m` + i18n.get("loaded_text_plugins_github_storehouse") + `：` + i18n.get("loaded_text_plugins_github_storehouse_link") + `\x1b[0m`)
+    logger.log(`\x1b[36m` + i18n.get("loaded_text_the_lasted_log") + `\x1b[0m  \x1b[33m` + i18n.get("loaded_text_author") + `：` + i18n.get("loaded_text_author_nickname") + `\x1b[0m`)
     logger.log(`\x1b[36m==============================${plugin_name}===============================\x1b[0m`)
 
     // colorLog('blue', "Hello World!") // 输出带颜色的文本

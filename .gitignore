@@ -1,4 +1,6 @@
 # 禁止上传build文件夹
 build/
+config/
+i18n/
 
 7z.exe

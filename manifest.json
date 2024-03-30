@@ -2,7 +2,7 @@
     "entry": "EasyBackuper.js",
     "name": "EasyBackuper",
     "type": "lse-quickjs",
-    "description": "A LeviLamina plugin form LegacyScriptEngine to help you bakup the server world files easily and this's a easy js",
+    "description": "简单化的LSE - JS备份插件",
     "author": "MengHanLOVE1027",
     "version": "0.0.6-beta",
     "dependencies": [
