@@ -11,14 +11,7 @@ lip install github.com/MengHanLOVE1027/EasyBackuper
 ```
 
 ## Usage
-
-1. Put LLSE plugins directly in `/path/to/bedrock_dedicated_server/plugins/`。
-
-2. Run the server, then the plugins will be migrated to LeviLamina plugin manifest automatically.
-
-3. To load them, you need to restart the server.
-
-For more information, please refer to [the documentation](https://lse.liteldev.com).
+Please Wait.
 
 ## Contributing
 
