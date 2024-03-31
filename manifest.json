@@ -1,10 +1,10 @@
 {
     "entry": "EasyBackuper.js",
-    "name": "EasyBackuper",
+    "name": "EasyBackuperDevelop",
     "type": "lse-quickjs",
     "description": "简单化的LSE - JS备份插件",
     "author": "MengHanLOVE1027",
-    "version": "0.0.6-beta",
+    "version": "0.1.0",
     "dependencies": [
         {
             "name": "legacy-script-engine-quickjs"

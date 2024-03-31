@@ -4,7 +4,7 @@
 // 注册插件
 const plugin = {
     Name: "EasyBackuper",
-    Introduction: "简单化的LSE - JS备份插件 v0.0.6-beta 作者: 梦涵LOVE",
+    Introduction: "简单化的LSE - JS备份插件 v0.1 作者: 梦涵LOVE",
     Version: [0, 0, 6],
     Other: {
         Author: "梦涵LOVE",
@@ -22,7 +22,7 @@ const plugin = {
 
 // 声明常量
 const plugin_name = "EasyBackuper",
-    plugin_version = "v0.0.6-beta",
+    plugin_version = "v0.1",
     cmd_name = "backup",
     cmd_alias = "easybackuper",
     plugin_path = `./plugins/${plugin_name}`,
@@ -31,12 +31,12 @@ const plugin_name = "EasyBackuper",
     backup_tmp_path = "./backup_tmp/", // 临时复制解压缩路径
     world_level_name = /level-name=(.*)/.exec(File.readFrom('./server.properties'))[1], // 获取存档名称
     world_folder_path = `./worlds/${world_level_name}/` // 存档路径
-exe_7z_path = `${plugin_path}/7z.exe`
 
 
 // 配置文件初始化
 const pluginConfigFile = {
     Language: "zh_CN",
+    exe_7z_path: "./plugins/EasyBackuper/7z.exe",
     BackupFolderPath: "./backup/",
     Debug_MoreLogs: false
 }
@@ -198,7 +198,7 @@ function Backup() {
         system.getTimeObj().s + `[${world_level_name}].zip`
 
     // 压缩存档(tmp文件夹)
-    system.newProcess(`${exe_7z_path} a -tzip ` + '"' + pluginConfig.get("BackupFolderPath") + `/${archive_name}` + '"' + ` ${backup_tmp_path}/`, (exit, out) => {
+    system.newProcess(pluginConfig.get("exe_7z_path") + ' a -tzip ' + '"' + pluginConfig.get("BackupFolderPath") + `/${archive_name}` + '"' + ` ${backup_tmp_path}/`, (exit, out) => {
         logger.log(i18n.get("backup_check_compressing")) // 提示信息
 
         // 调试信息(在配置文件中Debug_MoreLogs开启)
