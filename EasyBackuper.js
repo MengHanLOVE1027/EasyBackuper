@@ -63,8 +63,11 @@ const i18nLangFile = {
         backup_check_copy_success: "拷贝成功",
         backup_check_copy_wrong: "拷贝出错",
         backup_check_compressing: "压缩中...",
-        backup_check_compress_success: "压缩成功",
+        backup_check_compress_success: "压缩成功，压缩包位于：",
         backup_check_compress_wrong: "压缩出错",
+        reload_text: "重载中...",
+        reload_text_pluginConfig: "配置文件：",
+        reload_text_i18nLangConfig: "i18n文件：",
     },
     en_US: {
         test: "test",
@@ -84,8 +87,11 @@ const i18nLangFile = {
         backup_check_copy_success: "Copy Success",
         backup_check_copy_wrong: "Copy Wrong",
         backup_check_compressing: "Compressing...",
-        backup_check_compress_success: "Compress Success",
+        backup_check_compress_success: "Compress Success, the archive is located in: ",
         backup_check_compress_wrong: "Compress Wrong",
+        reload_text: "Reloading...",
+        reload_text_pluginConfig: "Config File：",
+        reload_text_i18nLangConfig: "i18n File：",
     },
 }
 // 创建配置文件
@@ -189,7 +195,7 @@ function Backup() {
         system.getTimeObj().D + '=' +
         system.getTimeObj().h + '-' +
         system.getTimeObj().m + '-' +
-        system.getTimeObj().s + `[${world_level_name}]`
+        system.getTimeObj().s + `[${world_level_name}].zip`
 
     // 压缩存档(tmp文件夹)
     system.newProcess(`${exe_7z_path} a -tzip ` + '"' + pluginConfig.get("BackupFolderPath") + `/${archive_name}` + '"' + ` ${backup_tmp_path}/`, (exit, out) => {
@@ -220,7 +226,7 @@ function Backup() {
     // 检查是否压缩成功
     let check_compress = setInterval(() => {
         if (compress_return == 0) {
-            logger.log(i18n.get("backup_check_compress_success"))
+            logger.log(i18n.get("backup_check_compress_success") + pluginConfig.get("BackupFolderPath") + `/${archive_name}`)
             File.delete(backup_tmp_path)
             clearInterval(check_compress) // 退出循环函数
         } else if (compress_return == 1) {
@@ -229,10 +235,6 @@ function Backup() {
             clearInterval(check_compress) // 退出循环函数
         }
     }, 100)
-
-
-    // log(system.cmd("C:/Users/HeYuHan/Desktop/BDS/plugins/插件编写/EasyBackuper/lip.exe list"))
-    // log(system.newProcess("C:/Users/HeYuHan/Desktop/BDS/plugins/插件编写/EasyBackuper/lip.exe list", (exit, out) => {log(exit, '\n', out)}))
 }
 
 /**
@@ -264,10 +266,9 @@ function RegisterCmd() {
                 let b = i18nLangConfig.reload()
                 let i18nLocaleName = pluginConfig.get("Language")
                 i18n.load(plugin_path + "/i18n/translation.json", i18nLocaleName)
-                return output.success(`Reloaded ${a} ${b}`)
+                return output.success(i18n.get("reload_text") + '\n' + i18n.get("reload_text_pluginConfig") + a + '\n' + i18n.get("reload_text_i18nLangConfig") + b)
 
             case "init": // 初始化配置文件
-                logger.log('testing...')
                 if (File.exists(plugin_path + "/i18n/translation.json")) {
                     File.delete(plugin_path + "/i18n/translation.json")
                 }
@@ -275,7 +276,7 @@ function RegisterCmd() {
                     File.delete(plugin_path + `/config/${plugin_name}.json`)
                 }
 
-                // 创建配置文件
+                // 重新创建配置文件
                 new JsonConfigFile(
                     plugin_path + `/config/${plugin_name}.json`,
                     JSON.stringify(pluginConfigFile)
@@ -310,7 +311,7 @@ function Loadplugin() {
     /**       **////**  /////**   **     /*    /** **////** /**   **/**/** /**  /** /**///  /**////  /**   
     /********//******** ******   **      /******* //********//***** /**//**//****** /**     //******/***   
     ////////  //////// //////   //       ///////   ////////  /////  //  //  /////// /*     ////// ///    
-                            \x1b[33m`+ i18n.get("loaded_text_author") + `：` + i18n.get("loaded_text_author_nickname") + `                             \x1b[13047m` + i18n.get("loaded_text_version") + `：${plugin_version}\x1b[0m
+                            \x1b[33m`+ i18n.get("loaded_text_author") + `：` + i18n.get("loaded_text_author_nickname") + `                        \x1b[13047m` + i18n.get("loaded_text_version") + `：${plugin_version}[${i18nLocaleName}]\x1b[0m
 ===============================================================================================================`)
 
 
@@ -320,7 +321,7 @@ function Loadplugin() {
     logger.log(`\x1b[135m` + i18n.get("loaded_text_the_helps") + `\x1b[0m`)
     logger.log(`\x1b[31m` + i18n.get("loaded_text_copyright") + `\x1b[0m`)
     logger.log(`\x1b[33m` + i18n.get("loaded_text_plugins_github_storehouse") + `：` + i18n.get("loaded_text_plugins_github_storehouse_link") + `\x1b[0m`)
-    logger.log(`\x1b[36m` + i18n.get("loaded_text_the_lasted_log") + `\x1b[0m  \x1b[33m` + i18n.get("loaded_text_author") + `：` + i18n.get("loaded_text_author_nickname") + `\x1b[0m`)
+    logger.log(`\x1b[36m` + i18n.get("loaded_text_the_latest_log") + `\x1b[0m  \x1b[33m` + i18n.get("loaded_text_author") + `：` + i18n.get("loaded_text_author_nickname") + `\x1b[0m`)
     logger.log(`\x1b[36m==============================${plugin_name}===============================\x1b[0m`)
 
     // colorLog('blue', "Hello World!") // 输出带颜色的文本
