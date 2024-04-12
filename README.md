@@ -11,7 +11,7 @@ lip install github.com/MengHanLOVE1027/EasyBackuper
 ```
 
 ## Usage
-Please Wait.
+See https://www.minebbs.com/resources/easybackuper-eb.7771/
 
 ## Contributing
 
