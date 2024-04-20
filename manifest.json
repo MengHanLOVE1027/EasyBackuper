@@ -1,6 +1,6 @@
 {
     "entry": "EasyBackuper.js",
-    "name": "EasyBackuperDevelop",
+    "name": "EasyBackuper",
     "type": "lse-quickjs",
     "description": "简单化的LSE - JS备份插件",
     "author": "MengHanLOVE1027",
