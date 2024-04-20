@@ -176,7 +176,7 @@ function deleteOldBackups(backupDir, maxBackups) {
                 logger.warn(i18n.get('auto_cleaup_success') + ending[i])
             }
         } else {
-        // 当备份文件夹文件小于等于用户设置最大保留值时
+            // 当备份文件夹文件小于等于用户设置最大保留值时
             logger.error(i18n.get('auto_cleaup_wrong'))
         }
     } else {
@@ -589,11 +589,67 @@ function Loadplugin() {
     // mc.sendCmdOutput("Hello LegacyScriptEngine!") // 模拟产生一个控制台命令输出
 
     mc.listen("onServerStarted", () => {
-        Clean_Backup_Files()
+        // Clean_Backup_Files()
         // 注册指令
         RegisterCmd()
     })
 }
 
 // 加载插件
-Loadplugin()
+// Loadplugin()
+
+
+
+
+function parseCronExpression(cronExpression) {
+    const fields = cronExpression.split(/\s+/);
+    if (fields.length !== 6) {
+        throw new Error('Cron expression must have 6 space-separated fields.');
+    }
+
+    const [second, minute, hour, day, month, dayOfWeek] = fields;
+
+    // 获取当前时间（仅年月日时分秒）
+    let now = new Date();
+    now.setSeconds(0, 0); // 重置秒和毫秒
+
+    // 辅助函数，用于解析 Cron 字段中的星号、问号、列表、范围和步进
+    function parseField(field) {
+        // 实际实现需要更复杂的逻辑来处理 Cron 字段中的各种模式
+        if (field === '*') return '*';
+        if (field === '?') return '?';
+        // 简化处理，只支持单个数字和星号
+        return parseInt(field, 10);
+    }
+
+    // 简化处理，只支持单个数字和星号
+    const parsedFields = [second, minute, hour, day, month, dayOfWeek].map(parseField);
+
+    // 计算下一个执行时间
+    let nextExecution = new Date(now);
+    nextExecution.setSeconds(parsedFields[0] === '*' ? 0 : parsedFields[0]);
+    nextExecution.setMinutes(parsedFields[1] === '*' ? 0 : parsedFields[1]);
+    nextExecution.setHours(parsedFields[2] === '*' ? 0 : parsedFields[2]);
+
+    // 日期、月份和星期几的处理会更复杂，需要考虑月份的天数和星期几的循环
+    // 这里为了简化，不实现完整的逻辑
+
+    return nextExecution;
+}
+
+// 示例使用
+const cronExpression = '30 40 23 * * *';  // 每小时的第0分钟第0秒执行
+let a = parseCronExpression(cronExpression);
+try {
+    let nextExecutionTime = parseCronExpression(cronExpression);
+    logger.log('Next execution time:', nextExecutionTime.toString());
+} catch (error) {
+    logger.error(error.message);
+}
+mc.listen("onTick", () => {
+    let myDate = new Date()
+    // 检测时间
+    if (a.getHours() == myDate.getHours() && a.getMinutes() == myDate.getMinutes() && a.getSeconds() == myDate.getSeconds()) {
+        logger.error('日你妈')
+    }
+})
