@@ -41,8 +41,10 @@ const pluginConfigFile = {
     Broadcast: {
         Status: true,
         Time_ms: 5000,
-        Title: "要开始备份啦~",
+        Title: "[OP]要开始备份啦~",
         Message: "将于 5秒 后进行备份！",
+        Server_Title: "[Server]Neve Gonna Give You UP~",
+        Server_Message: "Never Gonna Let You Down~",
         Backup_success_Title: "备份完成！",
         Backup_success_Message: "星级服务，让爱连接",
         Backup_wrong_Title: "很好的邢级服务，使我备份失败",
@@ -68,7 +70,7 @@ const i18nLangFile = {
         loaded_text_plugins_github_storehouse_link: "https://github.com/MengHanLOVE1027/EasyBackuper",
         loaded_text_the_latest_log: "EasyBackuper(LLSE - JS) - 简单化的LSE - JS备份插件",
         init_config_file_success: "初始化文件成功",
-        backup_broadcast_start : "§2§l[EasyBackuper]§r§3开始备份力！",
+        backup_broadcast_start: "§2§l[EasyBackuper]§r§3开始备份力！",
         backup_broadcast_check_copy_success: "§2§l[EasyBackuper]§r§6拷贝成功！",
         backup_broadcast_check_copy_wrong: "§2§l[EasyBackuper]§r§c拷贝失败！",
         backup_broadcast_check_compress_success: "§2§l[EasyBackuper]§r§6备份成功！",
@@ -96,7 +98,7 @@ const i18nLangFile = {
         loaded_text_plugins_github_storehouse_link: "https://github.com/MengHanLOVE1027/EasyBackuper",
         loaded_text_the_latest_log: "EasyBackuper(LLSE - JS) - Simplistic LSE - JS backup plugin",
         init_config_file_success: "Init Configs Success",
-        backup_broadcast_start : "§2[EasyBackuper]§r§3Start the backup",
+        backup_broadcast_start: "§2[EasyBackuper]§r§3Start the backup",
         backup_broadcast_check_copy_success: "§2[EasyBackuper]§r§6Copy Success！",
         backup_broadcast_check_copy_wrong: "§2[EasyBackuper]§r§cCopy Wrong",
         backup_broadcast_check_compress_success: "§2[EasyBackuper]§r§cCompress Success",
@@ -127,6 +129,8 @@ let i18nLangConfig = new JsonConfigFile(
 let i18nLocaleName = pluginConfig.get("Language")
 i18n.load(plugin_path + "/i18n/translation.json", i18nLocaleName)
 
+// 全局变量
+let pl, yes_no_console
 
 
 
@@ -155,7 +159,9 @@ function copyDirectory(src, dest, pl) {
             }
             if (pluginConfig.get("Debug_MoreLogs_Player")) {
                 // 提醒使用该指令玩家
-                pl.tell(srcPath + " ==> " + destPath)
+                if (yes_no_console == 0) {
+                    pl.tell(srcPath + " ==> " + destPath)
+                }
             }
 
             // 如果是文件，则复制文件
@@ -166,11 +172,32 @@ function copyDirectory(src, dest, pl) {
 }
 
 /**
+ * 通知功能(类似于成就获得提示，位于上方,通知全体玩家)
+ */
+function Notice_Upper(broadcast_title, broadcast_message) {
+    let pl1
+    let players = mc.getOnlinePlayers()
+    for (let i = 0; i < players.length; i++) {
+        pl1 = mc.getPlayer(players[i].realName)
+        // 通知全体玩家(类似于成就获得提示)
+        pl1.sendToast(broadcast_title, broadcast_message)
+    }
+}
+
+/**
  * 通知功能
  */
 function Nocite(origin) {
-    // 设置玩家对象
-    let pl = mc.getPlayer(origin.player.realName)
+
+    // 判断指令主体是什么
+    if (origin.typeName == 'Virtual') {
+        // 设置玩家对象
+        pl = mc.getPlayer(origin.player.realName)
+        yes_no_console = 0
+    } else if (origin.typeName == 'DedicatedServer') {
+        logger.log('asasaasa SERVER!')
+        yes_no_console = 1
+    }
 
     // 获取配置文件中Broadcast配置内容
     let broadcast = pluginConfig.get('Broadcast')
@@ -182,15 +209,26 @@ function Nocite(origin) {
     let broadcast_title = broadcast['Title']
     // 读取"Message"(通知内容)
     let broadcast_message = broadcast['Message']
+    // 读取"Title"(通知标题)
+    let broadcast_server_title = broadcast['Server_Title']
+    // 读取"Message"(通知内容)
+    let broadcast_server_message = broadcast['Server_Message']
 
     // 延时后并开始备份
-    setTimeout(() => {
-        Backup(pl)
-    }, broadcast_time_ms);
+    if (yes_no_console == 0) {
+        setTimeout(() => {
+            Backup(pl)
+        }, broadcast_time_ms);
+    } else {
+        Backup()
+    }
 
-    if (broadcast_status) {
-        // 通知全体玩家(类似于成就获得提示)
-        pl.sendToast(broadcast_title, broadcast_message)
+    if (yes_no_console == 0) {
+        if (broadcast_status) {
+            Notice_Upper(broadcast_title, broadcast_message)
+        }
+    } else if (yes_no_console == 1) {
+        Notice_Upper(broadcast_server_title, broadcast_server_message)
     }
 }
 
@@ -227,7 +265,9 @@ function Backup(pl) {
     logger.log(i18n.get("backup_check_copying")) // 提示信息
 
     // 提醒使用该指令玩家
-    pl.tell(i18n.get("backup_check_copying"))
+    if (yes_no_console == 0) {
+        pl.tell(i18n.get("backup_check_copying"))
+    }
 
     // 创建备份文件夹
     if (!File.exists(pluginConfig.get("BackupFolderPath"))) {
@@ -252,7 +292,9 @@ function Backup(pl) {
         }
         if (pluginConfig.get("Debug_MoreLogs_Player")) {
             // 提醒使用该指令玩家
-            pl.tell(i18n.get("backup_processing") + `${world_folder_list[i]} --> ${currentPath}`)
+            if (yes_no_console == 0) {
+                pl.tell(i18n.get("backup_processing") + `${world_folder_list[i]} --> ${currentPath}`)
+            }
         }
 
         // 检查是否为目录
@@ -282,7 +324,9 @@ function Backup(pl) {
         logger.log(i18n.get("backup_check_compressing")) // 提示信息
 
         // 提醒使用该指令玩家
-        pl.tell(i18n.get("backup_check_compressing"))
+        if (yes_no_console == 0) {
+            pl.tell(i18n.get("backup_check_compressing"))
+        }
 
         // 调试信息(在配置文件中Debug_MoreLogs开启)
         if (pluginConfig.get("Debug_MoreLogs")) {
@@ -290,7 +334,9 @@ function Backup(pl) {
         }
         if (pluginConfig.get("Debug_MoreLogs_Player")) {
             // 提醒使用该指令玩家
-            pl.tell(exit + '\n' + out)
+            if (yes_no_console == 0) {
+                pl.tell(exit + '\n' + out)
+            }
         }
 
         compress_return = exit
@@ -309,7 +355,9 @@ function Backup(pl) {
                 mc.broadcast(i18n.get('backup_broadcast_check_copy_success'), 5)
             }
             // 提醒使用该指令玩家
-            pl.tell(i18n.get("backup_check_copy_success"))
+            if (yes_no_console == 0) {
+                pl.tell(i18n.get("backup_check_copy_success"))
+            }
 
             mc.runcmdEx("save resume") // 恢复存档写入
             clearInterval(check_copy) // 退出循环函数
@@ -323,7 +371,9 @@ function Backup(pl) {
                 mc.broadcast(i18n.get('backup_broadcast_check_copy_wrong'), 5)
             }
             // 提醒使用该指令玩家
-            pl.tell(i18n.get("backup_check_copy_wrong"))
+            if (yes_no_console == 0) {
+                pl.tell(i18n.get("backup_check_copy_wrong"))
+            }
 
             mc.runcmdEx("save resume") // 恢复存档写入
             clearInterval(check_copy) // 退出循环函数
@@ -342,10 +392,12 @@ function Backup(pl) {
                 mc.broadcast(i18n.get('backup_broadcast_check_compress_success'), 5)
 
                 // 通知全体玩家(类似于成就获得提示)
-                pl.sendToast(broadcast_Backup_success_Title, broadcast_Backup_success_Message)
+                Notice_Upper(broadcast_Backup_success_Title, broadcast_Backup_success_Message)
             }
             // 提醒使用该指令玩家
-            pl.tell(i18n.get("backup_check_compress_success") + pluginConfig.get("BackupFolderPath") + `/${archive_name}`)
+            if (yes_no_console == 0) {
+                pl.tell(i18n.get("backup_check_compress_success") + pluginConfig.get("BackupFolderPath") + `/${archive_name}`)
+            }
 
             File.delete(backup_tmp_path)
             clearInterval(check_compress) // 退出循环函数
@@ -359,10 +411,12 @@ function Backup(pl) {
                 mc.broadcast(i18n.get('backup_broadcast_check_compress_wrong'), 5)
 
                 // 通知全体玩家(类似于成就获得提示)
-                pl.sendToast(broadcast_Backup_wrong_Title, broadcast_Backup_wrong_Message)
+                Notice_Upper(broadcast_Backup_wrong_Title, broadcast_Backup_wrong_Message)
             }
             // 提醒使用该指令玩家
-            pl.tell(i18n.get("backup_check_compress_wrong"))
+            if (yes_no_console == 0) {
+                pl.tell(i18n.get("backup_check_compress_wrong"))
+            }
 
             File.delete(backup_tmp_path)
             clearInterval(check_compress) // 退出循环函数
