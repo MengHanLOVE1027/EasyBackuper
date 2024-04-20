@@ -38,6 +38,12 @@ const pluginConfigFile = {
     Language: "zh_CN",
     exe_7z_path: "./7za.exe",
     BackupFolderPath: "./backup/",
+    Auto_Clean: {
+        Use_Number_Detection: {
+            Status: false,
+            Max_Number: 5
+        }
+    },
     Broadcast: {
         Status: true,
         Time_ms: 5000,
@@ -82,6 +88,10 @@ const i18nLangFile = {
         backup_check_compressing: "压缩中...",
         backup_check_compress_success: "压缩成功，压缩包位于：",
         backup_check_compress_wrong: "压缩出错",
+        auto_cleaup_start: "检测开启了自动清理，正在启动中...",
+        auto_cleaup_do_not_start: "本小姐看了一下，很干净捏~",
+        auto_cleaup_success: "清理成功，清理了：",
+        auto_cleaup_wrong: "清理失败！",
         reload_text: "重载中...",
         reload_text_pluginConfig: "配置文件：",
         reload_text_i18nLangConfig: "i18n文件：",
@@ -99,7 +109,7 @@ const i18nLangFile = {
         loaded_text_the_latest_log: "EasyBackuper(LLSE - JS) - Simplistic LSE - JS backup plugin",
         init_config_file_success: "Init Configs Success",
         backup_broadcast_start: "§2[EasyBackuper]§r§3Start the backup",
-        backup_broadcast_check_copy_success: "§2[EasyBackuper]§r§6Copy Success！",
+        backup_broadcast_check_copy_success: "§2[EasyBackuper]§r§6Copy Success!",
         backup_broadcast_check_copy_wrong: "§2[EasyBackuper]§r§cCopy Wrong",
         backup_broadcast_check_compress_success: "§2[EasyBackuper]§r§cCompress Success",
         backup_broadcast_check_compress_wrong: "§2[EasyBackuper]§r§cCompress Wrong",
@@ -110,6 +120,10 @@ const i18nLangFile = {
         backup_check_compressing: "Compressing...",
         backup_check_compress_success: "Compress Success, the archive is located in: ",
         backup_check_compress_wrong: "Compress Wrong",
+        auto_cleaup_start: "Detection is enabled for automatic cleanup, starting...",
+        auto_cleaup_do_not_start: "If the number of backup folders does not reach the specified number, the cleanup is stopped",
+        auto_cleaup_success: "Cleanup is success",
+        auto_cleaup_wrong: "Cleanup is wrong",
         reload_text: "Reloading...",
         reload_text_pluginConfig: "Config File：",
         reload_text_i18nLangConfig: "i18n File：",
@@ -133,43 +147,64 @@ i18n.load(plugin_path + "/i18n/translation.json", i18nLocaleName)
 let pl, yes_no_console
 
 
-
 /**
- * 递归复制子目录辅助函数
+ * 删除指定文件夹内超过最大备份量的文件
  */
-function copyDirectory(src, dest, pl) {
-    // 获取源目录下的所有文件和目录
-    let files = File.getFilesList(src)
-    for (let file of files) {
-        let srcPath = src + '/' + file
-        let destPath = dest + '/' + file
+function deleteOldBackups(backupDir, maxBackups) {
+    let goingto_delete_backups = []
+    let ending = []
+    let err_out
+    // 列出指定文件夹下的所有文件
+    let filesList = File.getFilesList(backupDir)
 
-        // 检查是否为目录
-        if (File.checkIsDir(srcPath)) {
-            // 创建目标目录
-            let backupSubDirPath = dest + '/' + file
-            File.mkdir(backupSubDirPath)
-            // 递归复制子目录
-            copyDirectory(srcPath, backupSubDirPath, pl)
-        } else {
-
-            // 调试信息(在配置文件中Debug_MoreLogs开启)
-            if (pluginConfig.get("Debug_MoreLogs")) {
-                logger.log(srcPath + " ==> " + destPath)
-            }
-            if (pluginConfig.get("Debug_MoreLogs_Player")) {
-                // 提醒使用该指令玩家
-                if (yes_no_console == 0) {
-                    pl.tell(srcPath + " ==> " + destPath)
-                }
-            }
-
-            // 如果是文件，则复制文件
-            File.copy(srcPath, dest)
+    // 当备份文件夹文件大于用户设置最大保留值时
+    if (filesList.length > maxBackups) {
+        for (let file of filesList) {
+            // 添加至数组
+            goingto_delete_backups.push(file)
         }
+        // 计算差值
+        let a = filesList.length - maxBackups
+        for (let i = 0; i < a; i++) {
+            // 获取删除的文件名保存在数组内
+            ending.push(goingto_delete_backups[i])
+            err_out = File.delete(pluginConfig.get('BackupFolderPath') + '/' + goingto_delete_backups[i])
+        }
+        // 对返回值进行判断是否成功运行
+        if (err_out) {
+            for (let i = 0; i < ending.length; i++) {
+                logger.warn(i18n.get('auto_cleaup_success') + ending[i])
+            }
+        } else {
+        // 当备份文件夹文件小于等于用户设置最大保留值时
+            logger.error(i18n.get('auto_cleaup_wrong'))
+        }
+    } else {
+        logger.log(i18n.get('auto_cleaup_do_not_start'))
     }
-    return true
 }
+/**
+ * 清理多余备份文件
+ */
+function Clean_Backup_Files() {
+    // 获取配置文件中Auto_Clean配置内容
+    let auto_cleaup = pluginConfig.get('Auto_Clean')
+    // 读取"Use_Number_Detection"
+    let use_number_detection = auto_cleaup['Use_Number_Detection']
+
+
+    // 读取"Use_Number_Detection"中的Status和Max_Clean_Number
+    let use_number_detection_status = use_number_detection['Status']
+    let use_number_detection_max_number = use_number_detection['Max_Number']
+
+    // 判断选择方式
+    if (use_number_detection_status) {
+        // 调用函数，例如删除除了最新的5个文件外的所有文件
+        logger.warn(i18n.get('auto_cleaup_start'))
+        deleteOldBackups(pluginConfig.get('BackupFolderPath'), use_number_detection_max_number)
+    }
+}
+
 
 /**
  * 通知功能(类似于成就获得提示，位于上方,通知全体玩家)
@@ -183,13 +218,12 @@ function Notice_Upper(broadcast_title, broadcast_message) {
         pl1.sendToast(broadcast_title, broadcast_message)
     }
 }
-
 /**
  * 通知功能
  */
 function Nocite(origin) {
 
-    // 判断指令主体是什么
+    // 判断指令主体是什么(重中之重)
     if (origin.typeName == 'Virtual') {
         // 设置玩家对象
         pl = mc.getPlayer(origin.player.realName)
@@ -232,6 +266,43 @@ function Nocite(origin) {
     }
 }
 
+
+/**
+ * 递归复制子目录辅助函数
+ */
+function copyDirectory(src, dest, pl) {
+    // 获取源目录下的所有文件和目录
+    let files = File.getFilesList(src)
+    for (let file of files) {
+        let srcPath = src + '/' + file
+        let destPath = dest + '/' + file
+
+        // 检查是否为目录
+        if (File.checkIsDir(srcPath)) {
+            // 创建目标目录
+            let backupSubDirPath = dest + '/' + file
+            File.mkdir(backupSubDirPath)
+            // 递归复制子目录
+            copyDirectory(srcPath, backupSubDirPath, pl)
+        } else {
+
+            // 调试信息(在配置文件中Debug_MoreLogs开启)
+            if (pluginConfig.get("Debug_MoreLogs")) {
+                logger.log(srcPath + " ==> " + destPath)
+            }
+            if (pluginConfig.get("Debug_MoreLogs_Player")) {
+                // 提醒使用该指令玩家
+                if (yes_no_console == 0) {
+                    pl.tell(srcPath + " ==> " + destPath)
+                }
+            }
+
+            // 如果是文件，则复制文件
+            File.copy(srcPath, dest)
+        }
+    }
+    return true
+}
 /**
  * 备份功能
  */
@@ -424,6 +495,7 @@ function Backup(pl) {
     }, 100)
 }
 
+
 /**
  * 注册指令
  */
@@ -517,6 +589,7 @@ function Loadplugin() {
     // mc.sendCmdOutput("Hello LegacyScriptEngine!") // 模拟产生一个控制台命令输出
 
     mc.listen("onServerStarted", () => {
+        Clean_Backup_Files()
         // 注册指令
         RegisterCmd()
     })
