@@ -48,27 +48,6 @@ const plugin_name = "EasyBackuper",
 
 
 /**
- * 全局变量模块
- * (Start)
- */
-
-// 全局变量
-let pl, yes_no_console
-// Cron相关变量
-let scheduled_tasks = pluginConfig.get('Scheduled_Tasks')
-let scheduled_tasks_status = scheduled_tasks['Status']
-let scheduled_tasks_cron = scheduled_tasks['Cron']
-let cronExpr = scheduled_tasks_cron
-let parsed = parseCronExpression(cronExpr)
-
-/**
- * 全局变量模块
- * (End)
- */
-
-
-
-/**
  * 配置文件模块
  * (Start)
  */
@@ -86,7 +65,7 @@ const pluginConfigFile = {
     },
     Scheduled_Tasks: {
         Status: false,
-        Cron: "0 * * * * *"
+        Cron: "*/10 * * * * *"
     },
     Broadcast: {
         Status: true,
@@ -188,6 +167,31 @@ i18n.load(plugin_path + "/i18n/translation.json", i18nLocaleName)
 
 /**
  * 配置文件模块
+ * (End)
+ */
+
+
+
+/**
+ * 全局变量模块
+ * (Start)
+ */
+
+// 全局变量
+let pl, yes_no_console
+// Cron相关变量
+let scheduled_tasks = pluginConfig.get('Scheduled_Tasks')
+let scheduled_tasks_status = scheduled_tasks['Status']
+let scheduled_tasks_cron = scheduled_tasks['Cron']
+let cronExpr = scheduled_tasks_cron
+let parsed = parseCronExpression(cronExpr)
+// Debug相关
+let Debug_Morelogs = pluginConfig.get("Debug_MoreLogs")
+let Debug_Morelogs_Player = pluginConfig.get("Debug_MoreLogs_Player")
+logger.error(Debug_Morelogs, Debug_Morelogs_Player)
+
+/**
+ * 全局变量模块
  * (End)
  */
 
@@ -439,7 +443,6 @@ function Nocite(origin) {
         pl = mc.getPlayer(origin.player.realName)
         yes_no_console = 0
     } else if (origin.typeName == 'DedicatedServer') {
-        logger.log('asasaasa SERVER!')
         yes_no_console = 1
     }
 
@@ -478,7 +481,7 @@ function Nocite(origin) {
 
 /**
  * 通知模块
- * (ENd)
+ * (End)
  */
 
 
@@ -512,10 +515,10 @@ function copyDirectory(src, dest, pl) {
         } else {
 
             // 调试信息(在配置文件中Debug_MoreLogs开启)
-            if (pluginConfig.get("Debug_MoreLogs")) {
+            if (Debug_Morelogs) {
                 logger.log(srcPath + " ==> " + destPath)
             }
-            if (pluginConfig.get("Debug_MoreLogs_Player")) {
+            if (Debug_Morelogs_Player) {
                 // 提醒使用该指令玩家
                 if (yes_no_console == 0) {
                     pl.tell(srcPath + " ==> " + destPath)
@@ -584,10 +587,10 @@ function Backup(pl) {
         let currentPath = world_folder_path + world_folder_list[i]
 
         // 调试信息(在配置文件中Debug_MoreLogs开启)
-        if (pluginConfig.get("Debug_MoreLogs")) {
+        if (Debug_Morelogs) {
             logger.log(i18n.get("backup_processing") + `${world_folder_list[i]} --> ${currentPath}`)
         }
-        if (pluginConfig.get("Debug_MoreLogs_Player")) {
+        if (Debug_Morelogs_Player) {
             // 提醒使用该指令玩家
             if (yes_no_console == 0) {
                 pl.tell(i18n.get("backup_processing") + `${world_folder_list[i]} --> ${currentPath}`)
@@ -626,10 +629,10 @@ function Backup(pl) {
         }
 
         // 调试信息(在配置文件中Debug_MoreLogs开启)
-        if (pluginConfig.get("Debug_MoreLogs")) {
+        if (Debug_Morelogs) {
             log(exit, '\n', out)
         }
-        if (pluginConfig.get("Debug_MoreLogs_Player")) {
+        if (Debug_Morelogs_Player) {
             // 提醒使用该指令玩家
             if (yes_no_console == 0) {
                 pl.tell(exit + '\n' + out)
@@ -729,6 +732,79 @@ function Backup(pl) {
 
 
 /**
+ * 重载插件模块
+ * (Start)
+ */
+
+/**
+ * 重载配置文件和i18n
+ * @returns (数组)配置文件重载状态[0]和i18n重载状态[1]
+ */
+function ReloadPlugin() {
+    let a, b, c = []
+    a = pluginConfig.reload() // 配置文件重载
+    // Debug相关
+    Debug_Morelogs = pluginConfig.get("Debug_MoreLogs")
+    Debug_Morelogs_Player = pluginConfig.get("Debug_MoreLogs_Player")
+    // Cron配置重载
+    scheduled_tasks = pluginConfig.get('Scheduled_Tasks')
+    scheduled_tasks_status = scheduled_tasks['Status']
+    scheduled_tasks_cron = scheduled_tasks['Cron']
+    cronExpr = scheduled_tasks_cron
+    parsed = parseCronExpression(cronExpr)
+
+    b = i18nLangConfig.reload() // i18n文件重载
+    let i18nLocaleName = pluginConfig.get("Language") // 重载i18n语言选择
+    i18n.load(plugin_path + "/i18n/translation.json", i18nLocaleName) // 加载i18n对应语言
+
+    // 将a和b的结果放入到数组c中并返回值
+    c.push(a, b)
+    return c
+}
+
+/**
+ * 重载插件模块
+ * (End)
+ */
+
+
+
+/**
+ * 初始化配置文件模块
+ * (Start)
+ */
+
+/**
+ * 初始化配置文件和i18n
+ */
+function InitPluginConfig() {
+    // 检测配置文件是否存在
+    if (File.exists(plugin_path + "/i18n/translation.json")) {
+        File.delete(plugin_path + "/i18n/translation.json")
+    }
+    if (File.exists(plugin_path + `/config/${plugin_name}.json`)) {
+        File.delete(plugin_path + `/config/${plugin_name}.json`)
+    }
+
+    // 重新创建配置文件
+    new JsonConfigFile(
+        plugin_path + `/config/${plugin_name}.json`,
+        JSON.stringify(pluginConfigFile)
+    )
+    new JsonConfigFile(
+        plugin_path + "/i18n/translation.json",
+        JSON.stringify(i18nLangFile)
+    )
+}
+
+/**
+ * 初始化配置文件模块
+ * (End)
+ */
+
+
+
+/**
  * 注册指令模块
  * (Start)
  */
@@ -758,37 +834,12 @@ function RegisterCmd() {
         // 如果有选项就进行判断
         switch (results.action) {
             case "reload": // 重载插件配置
-                let a = pluginConfig.reload() // 配置文件重载
-                // Cron配置重载
-                scheduled_tasks = pluginConfig.get('Scheduled_Tasks')
-                scheduled_tasks_status = scheduled_tasks['Status']
-                scheduled_tasks_cron = scheduled_tasks['Cron']
-                cronExpr = scheduled_tasks_cron
-                parsed = parseCronExpression(cronExpr)
-
-                let b = i18nLangConfig.reload() // i18n文件重载
-                let i18nLocaleName = pluginConfig.get("Language") // 重载i18n语言选择
-                i18n.load(plugin_path + "/i18n/translation.json", i18nLocaleName) // 加载i18n对应语言
+                let a = ReloadPlugin()[0] // 读取返回值数组的第一个
+                let b = ReloadPlugin()[1] // 读取返回值数组的第二个
                 return output.success(i18n.get("reload_text") + '\n' + i18n.get("reload_text_pluginConfig") + a + '\n' + i18n.get("reload_text_i18nLangConfig") + b)
 
             case "init": // 初始化配置文件
-                if (File.exists(plugin_path + "/i18n/translation.json")) {
-                    File.delete(plugin_path + "/i18n/translation.json")
-                }
-                if (File.exists(plugin_path + `/config/${plugin_name}.json`)) {
-                    File.delete(plugin_path + `/config/${plugin_name}.json`)
-                }
-
-                // 重新创建配置文件
-                new JsonConfigFile(
-                    plugin_path + `/config/${plugin_name}.json`,
-                    JSON.stringify(pluginConfigFile)
-                )
-                new JsonConfigFile(
-                    plugin_path + "/i18n/translation.json",
-                    JSON.stringify(i18nLangFile)
-                )
-
+                InitPluginConfig()
                 return output.success(i18n.get("init_config_file_success"))
         }
 
@@ -851,7 +902,7 @@ function Loadplugin() {
     mc.listen("onTick", () => {
         // 是否开启Cron定时任务
         if (scheduled_tasks_status) {
-            // 检测时间是否匹配，然后启用函数
+            // 检测时间是否匹配，然后调用函数
             checkCronAndRun(parsed, logCurrentTime)
         }
     })
