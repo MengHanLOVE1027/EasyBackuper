@@ -1,6 +1,7 @@
 // LiteLoader-AIDS automatic generated
 /// <reference path="c:\Users\HeYuHan\LiteDev/dts/HelperLib-master/src/index.d.ts"/>
 
+
 // 注册插件
 const plugin = {
     Name: "EasyBackuper",
@@ -43,6 +44,10 @@ const pluginConfigFile = {
             Status: false,
             Max_Number: 5
         }
+    },
+    Scheduled_Tasks: {
+        Status: false,
+        Cron: "0 * * * * *"
     },
     Broadcast: {
         Status: true,
@@ -147,46 +152,46 @@ i18n.load(plugin_path + "/i18n/translation.json", i18nLocaleName)
 let pl, yes_no_console
 
 
-/**
- * Corn解析函数
- * @param {*} cronExpression Corn表达式
- * @returns 匹配结果
- */
-function parseCronExpression(cronExpression) {
-    const fields = cronExpression.split(/\s+/);
-    if (fields.length !== 6) {
-        throw new Error('Cron expression must have 6 space-separated fields.');
-    }
+// /**
+//  * Cron解析函数
+//  * @param {*} cronExpression Cron表达式
+//  * @returns 匹配结果
+//  */
+// function parseCronExpression(cronExpression) {
+//     const fields = cronExpression.split(/\s+/);
+//     if (fields.length !== 6) {
+//         throw new Error('Cron expression must have 6 space-separated fields.');
+//     }
 
-    const [second, minute, hour, day, month, dayOfWeek] = fields;
+//     const [second, minute, hour, day, month, dayOfWeek] = fields;
 
-    // 获取当前时间（仅年月日时分秒）
-    let now = new Date();
-    now.setSeconds(0, 0); // 重置秒和毫秒
+//     // 获取当前时间（仅年月日时分秒）
+//     let now = new Date();
+//     now.setSeconds(0, 0); // 重置秒和毫秒
 
-    // 辅助函数，用于解析 Cron 字段中的星号、问号、列表、范围和步进
-    function parseField(field) {
-        // 实际实现需要更复杂的逻辑来处理 Cron 字段中的各种模式
-        if (field === '*') return '*';
-        if (field === '?') return '?';
-        // 简化处理，只支持单个数字和星号
-        return parseInt(field, 10);
-    }
+//     // 辅助函数，用于解析 Cron 字段中的星号、问号、列表、范围和步进
+//     function parseField(field) {
+//         // 实际实现需要更复杂的逻辑来处理 Cron 字段中的各种模式
+//         if (field === '*') return '*';
+//         if (field === '?') return '?';
+//         // 简化处理，只支持单个数字和星号
+//         return parseInt(field, 10);
+//     }
 
-    // 简化处理，只支持单个数字和星号
-    const parsedFields = [second, minute, hour, day, month, dayOfWeek].map(parseField);
+//     // 简化处理，只支持单个数字和星号
+//     const parsedFields = [second, minute, hour, day, month, dayOfWeek].map(parseField);
 
-    // 计算下一个执行时间
-    let nextExecution = new Date(now);
-    nextExecution.setSeconds(parsedFields[0] === '*' ? 0 : parsedFields[0]);
-    nextExecution.setMinutes(parsedFields[1] === '*' ? 0 : parsedFields[1]);
-    nextExecution.setHours(parsedFields[2] === '*' ? 0 : parsedFields[2]);
+//     // 计算下一个执行时间
+//     let nextExecution = new Date(now);
+//     nextExecution.setSeconds(parsedFields[0] === '*' ? 0 : parsedFields[0]);
+//     nextExecution.setMinutes(parsedFields[1] === '*' ? 0 : parsedFields[1]);
+//     nextExecution.setHours(parsedFields[2] === '*' ? 0 : parsedFields[2]);
 
-    // 日期、月份和星期几的处理会更复杂，需要考虑月份的天数和星期几的循环
-    // 这里为了简化，不实现完整的逻辑
+//     // 日期、月份和星期几的处理会更复杂，需要考虑月份的天数和星期几的循环
+//     // 这里为了简化，不实现完整的逻辑
 
-    return nextExecution;
-}
+//     return nextExecution;
+// }
 
 
 /**
@@ -608,7 +613,6 @@ function RegisterCmd() {
     cmd.setup() // 指令初始化(必须)
 
 }
-
 /**
  * 加载插件
  */
@@ -642,30 +646,160 @@ function Loadplugin() {
 
     mc.listen("onServerStarted", () => {
         // 清理冗余备份压缩包
-        // Clean_Backup_Files()
+        Clean_Backup_Files()
         // 注册指令
         RegisterCmd()
     })
 }
 
 // 加载插件
-// Loadplugin()
+Loadplugin()
 
 
 
-// 示例使用
-const cronExpression = '20 16 11 * * *';  // 每小时的第0分钟第0秒执行
-let a = parseCronExpression(cronExpression);
-try {
-    let nextExecutionTime = parseCronExpression(cronExpression);
-    logger.log('Next execution time:', nextExecutionTime.toString());
-} catch (error) {
-    logger.error(error.message);
-}
-mc.listen("onTick", () => {
-    let myDate = new Date()
-    // 检测时间
-    if (a.getHours() == myDate.getHours() && a.getMinutes() == myDate.getMinutes() && a.getSeconds() == myDate.getSeconds()) {
-        logger.error('日你妈')
+
+function parseCronExpression(cronExpr) {
+    const parts = cronExpr.split(' ');
+
+    if (parts.length < 6 || parts.length > 7) {
+        throw new Error('Invalid cron expression');
     }
+
+    const second = parseCronPart(parts[0], 0, 59);
+    const minute = parseCronPart(parts[1], 0, 59);
+    const hour = parseCronPart(parts[2], 0, 23);
+    const dayOfMonth = parseCronPart(parts[3], 1, 31);
+    const month = parseCronPart(parts[4], 1, 12, true);
+    const dayOfWeek = parseCronPart(parts[5], 0, 7, true); // 0 和 7 都代表周日
+
+    let year = null;
+    if (parts.length > 6) {
+        year = parseCronPart(parts[6], 1970, 9999);
+    }
+
+    return {
+        second,
+        minute,
+        hour,
+        dayOfMonth,
+        month,
+        dayOfWeek,
+        year
+    };
+}
+
+function parseCronPart(part, min, max, allowNames = false) {
+    const values = [];
+
+    if (part === '*') {
+        for (let i = min; i <= max; i++) {
+            values.push(i);
+        }
+    } else if (part.includes('/')) {
+        const [rangeStart, step] = part.split('/');
+        const stepNum = parseInt(step, 10);
+        for (let i = parseInt(rangeStart, 10) || min; i <= max; i += stepNum) {
+            values.push(i);
+        }
+    } else if (part.includes('-')) {
+        const [start, end] = part.split('-').map(Number);
+        for (let i = start; i <= end; i++) {
+            values.push(i);
+        }
+    } else if (part.includes(',')) {
+        values.push(...part.split(',').map(Number));
+    } else if (!isNaN(part)) {
+        const num = parseInt(part, 10);
+        if (num >= min && num <= max) {
+            values.push(num);
+        }
+    } else if (allowNames && ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].includes(part.toLowerCase())) {
+        values.push(['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].indexOf(part.toLowerCase()));
+    } else {
+        throw new Error(`Invalid cron field: ${part}`);
+    }
+
+    return values;
+}
+
+function checkCronAndRun(parsed, callback) {
+    const now = new Date();
+    const currentSecond = now.getSeconds();
+    const currentMinute = now.getMinutes();
+    const currentHour = now.getHours();
+    const currentDayOfMonth = now.getDate();
+    const currentMonth = now.getMonth() + 1; // 月份是从 0 开始的
+    const currentDayOfWeek = now.getDay(); // 0 表示周日，1 表示周一，等等
+
+    // 检查秒
+    if (!parsed.second.includes(currentSecond)) {
+        return;
+    }
+
+    // 检查分钟
+    if (!parsed.minute.includes(currentMinute)) {
+        return;
+    }
+
+    // 检查小时
+    if (!parsed.hour.includes(currentHour)) {
+        return;
+    }
+
+    // 检查日期
+    if (!parsed.dayOfMonth.includes(currentDayOfMonth) && !parsed.dayOfMonth.includes('*')) {
+        return;
+    }
+
+    // 检查月份
+    if (!parsed.month.includes(currentMonth)) {
+        return;
+    }
+
+    // 检查星期几
+    if (!parsed.dayOfWeek.includes(currentDayOfWeek) && !parsed.dayOfWeek.includes('*')) {
+        return;
+    }
+
+    // 如果所有条件都满足，执行回调函数
+    callback();
+}
+
+// 使用例子
+const cronExpr = '*/1 46 13 21 4 0 2024';
+const parsed = parseCronExpression(cronExpr);
+
+logger.error(parsed);
+
+function logCurrentTime() {
+    const now = new Date();
+    logger.warn('Current time:', now.toDateString(), now.toTimeString());
+}
+
+mc.listen("onTick", () => {
+    checkCronAndRun(parsed, logCurrentTime);
 })
+
+
+
+// // 示例使用
+// let scheduled_tasks = pluginConfig.get('Scheduled_Tasks')
+// let scheduled_tasks_status = scheduled_tasks['Status']
+// let scheduled_tasks_cron = scheduled_tasks['Cron']
+// let a, nextExecutionTime
+// mc.listen("onTick", () => {
+    // let myDate = new Date()
+
+    // try {
+    //     a = parseCronExpression(scheduled_tasks_cron)
+    //     nextExecutionTime = parseCronExpression(scheduled_tasks_cron)
+    //     logger.log('Next execution time:', nextExecutionTime.toString())
+    // } catch (error) {
+    //     logger.error(error.message)
+    // }
+
+    // // 检测时间
+    // if (a.getHours() == myDate.getHours() && a.getMinutes() == myDate.getMinutes() && a.getSeconds() == myDate.getSeconds()) {
+    //     logger.error('日你妈')
+    // }
+// })
