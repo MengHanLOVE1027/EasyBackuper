@@ -4,3 +4,4 @@ config/
 i18n/
 
 7za.exe
+*.zip
