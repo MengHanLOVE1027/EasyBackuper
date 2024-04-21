@@ -1,6 +1,6 @@
 # EasyBackuper
 
-A LeviLamina plugin form LegacyScriptEngine to help you bakup the server world files easily and this's a easy js
+简单化的LSE - JS备份插件
 
 ## Install
 

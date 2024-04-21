@@ -4,7 +4,7 @@
     "version": "0.2.7",
     "info": {
         "name": "EasyBackuper",
-        "description": "A LeviLamina plugin form LegacyScriptEngine to help you bakup the server world files easily and this's a easy js",
+        "description": "简单化的LSE - JS备份插件",
         "author": "MengHanLOVE1027",
         "tags": [
             "levilamina",
