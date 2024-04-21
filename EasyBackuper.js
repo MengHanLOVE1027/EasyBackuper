@@ -371,7 +371,7 @@ function logCurrentTime() {
     // 防止1秒内20游戏刻重复调用备份
     if (Cron_Use_Backup == true) {
         logger.log(i18n.get('auto_backup_start'))
-        Backup()
+        Nocite()
         // 清空数值方便下次被正确调用时可以继续备份
         Cron_Use_Backup = false
     }
@@ -480,14 +480,18 @@ function Notice_Upper(broadcast_title, broadcast_message) {
  * @param {*} origin 传入的origin对象(在注册指令处)
  */
 function Nocite(origin) {
-
-    // 判断指令主体是什么(重中之重)
-    if (origin.typeName == 'Virtual') {
-        // 设置玩家对象
-        pl = mc.getPlayer(origin.player.realName)
-        yes_no_console = 0
-    } else if (origin.typeName == 'DedicatedServer') {
+    // 当没有传参时默认为BDS调用
+    if (typeof origin === 'undefined') {
         yes_no_console = 1
+    } else {
+        // 判断指令主体是什么(重中之重)
+        if (origin.typeName == 'Virtual') {
+            // 设置玩家对象
+            pl = mc.getPlayer(origin.player.realName)
+            yes_no_console = 0
+        } else if (origin.typeName == 'DedicatedServer') {
+            yes_no_console = 1
+        }
     }
 
     // 获取配置文件中Broadcast配置内容
@@ -954,7 +958,7 @@ function Loadplugin() {
     let a = i18n.get("auto_backup_status") + scheduled_tasks_status
     let b = i18n.get("auto_cleanup_status") + use_number_detection_status
     let c = i18n.get("debug_morelogs_status") + pluginConfig.get('Debug_MoreLogs')
-    let d =i18n.get('debug_morelogs_player_status') + pluginConfig.get('Debug_MoreLogs_Player')
+    let d = i18n.get('debug_morelogs_player_status') + pluginConfig.get('Debug_MoreLogs_Player')
     let e = i18n.get('debug_morelogs_cron_status') + pluginConfig.get('Debug_MoreLogs_Cron')
     logger.log(a)
     logger.log(b)
