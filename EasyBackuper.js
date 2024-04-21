@@ -6,7 +6,7 @@
 const plugin = {
     Name: "EasyBackuper",
     Introduction: "简单化的LSE - JS备份插件 v0.2.7 作者: 梦涵LOVE",
-    Version: [0, 2, 6],
+    Version: [0, 2, 7],
     Other: {
         Author: "梦涵LOVE",
         Github: "https://github.com/MengHanLOVE1027/EasyBackuper",
