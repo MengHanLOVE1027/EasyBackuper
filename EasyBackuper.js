@@ -5,8 +5,8 @@
 // 注册插件
 const plugin = {
     Name: "EasyBackuper",
-    Introduction: "简单化的LSE - JS备份插件 v0.1.0 作者: 梦涵LOVE",
-    Version: [0, 1, 0],
+    Introduction: "简单化的LSE - JS备份插件 v0.2.4 作者: 梦涵LOVE",
+    Version: [0, 2, 4],
     Other: {
         Author: "梦涵LOVE",
         Github: "https://github.com/MengHanLOVE1027/EasyBackuper",
@@ -30,7 +30,7 @@ const plugin = {
 
 // 声明常量
 const plugin_name = "EasyBackuper",
-    plugin_version = "v0.1.0",
+    plugin_version = "v0.2.4",
     cmd_name = "backup",
     cmd_alias = "easybackuper",
     plugin_path = `./plugins/${plugin_name}`,

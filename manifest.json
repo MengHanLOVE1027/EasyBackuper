@@ -4,7 +4,7 @@
     "type": "lse-quickjs",
     "description": "简单化的LSE - JS备份插件",
     "author": "MengHanLOVE1027",
-    "version": "0.1.0",
+    "version": "0.2.4",
     "dependencies": [
         {
             "name": "legacy-script-engine-quickjs"
