@@ -55,7 +55,7 @@ const plugin_name = "EasyBackuper",
 // 配置文件初始化
 const pluginConfigFile = {
     Language: "zh_CN",
-    exe_7z_path: "./7za.exe",
+    exe_7z_path: "./plugins/EasyBackuper/7za.exe",
     BackupFolderPath: "./backup/",
     Auto_Clean: {
         Use_Number_Detection: {
