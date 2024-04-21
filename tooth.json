@@ -1,7 +1,7 @@
 {
     "format_version": 2,
     "tooth": "github.com/MengHanLOVE1027/EasyBackuper",
-    "version": "0.2.7",
+    "version": "0.2.8",
     "info": {
         "name": "EasyBackuper",
         "description": "简单化的LSE - JS备份插件",
@@ -12,7 +12,7 @@
             "plugin"
         ]
     },
-    "asset_url": "https://github.com/MengHanLOVE1027/EasyBackuper/releases/download/v0.2.7/EasyBackuper-v0.2.7.zip",
+    "asset_url": "https://github.com/MengHanLOVE1027/EasyBackuper/releases/download/v0.2.8/EasyBackuper-v0.2.8.zip",
     "prerequisites": {
         "github.com/LiteLDev/LeviLamina": "0.11.x"
     },
