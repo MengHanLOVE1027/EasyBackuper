@@ -138,17 +138,61 @@ let i18nLangConfig = new JsonConfigFile(
     plugin_path + "/i18n/translation.json",
     JSON.stringify(i18nLangFile)
 )
-
 // 加载i18n国际化文件
 let i18nLocaleName = pluginConfig.get("Language")
 i18n.load(plugin_path + "/i18n/translation.json", i18nLocaleName)
+
 
 // 全局变量
 let pl, yes_no_console
 
 
 /**
+ * Corn解析函数
+ * @param {*} cronExpression Corn表达式
+ * @returns 匹配结果
+ */
+function parseCronExpression(cronExpression) {
+    const fields = cronExpression.split(/\s+/);
+    if (fields.length !== 6) {
+        throw new Error('Cron expression must have 6 space-separated fields.');
+    }
+
+    const [second, minute, hour, day, month, dayOfWeek] = fields;
+
+    // 获取当前时间（仅年月日时分秒）
+    let now = new Date();
+    now.setSeconds(0, 0); // 重置秒和毫秒
+
+    // 辅助函数，用于解析 Cron 字段中的星号、问号、列表、范围和步进
+    function parseField(field) {
+        // 实际实现需要更复杂的逻辑来处理 Cron 字段中的各种模式
+        if (field === '*') return '*';
+        if (field === '?') return '?';
+        // 简化处理，只支持单个数字和星号
+        return parseInt(field, 10);
+    }
+
+    // 简化处理，只支持单个数字和星号
+    const parsedFields = [second, minute, hour, day, month, dayOfWeek].map(parseField);
+
+    // 计算下一个执行时间
+    let nextExecution = new Date(now);
+    nextExecution.setSeconds(parsedFields[0] === '*' ? 0 : parsedFields[0]);
+    nextExecution.setMinutes(parsedFields[1] === '*' ? 0 : parsedFields[1]);
+    nextExecution.setHours(parsedFields[2] === '*' ? 0 : parsedFields[2]);
+
+    // 日期、月份和星期几的处理会更复杂，需要考虑月份的天数和星期几的循环
+    // 这里为了简化，不实现完整的逻辑
+
+    return nextExecution;
+}
+
+
+/**
  * 删除指定文件夹内超过最大备份量的文件
+ * @param {*} backupDir 备份文件夹路径
+ * @param {*} maxBackups 最大保留数量
  */
 function deleteOldBackups(backupDir, maxBackups) {
     let goingto_delete_backups = []
@@ -208,6 +252,8 @@ function Clean_Backup_Files() {
 
 /**
  * 通知功能(类似于成就获得提示，位于上方,通知全体玩家)
+ * @param {*} broadcast_title 标题
+ * @param {*} broadcast_message 内容
  */
 function Notice_Upper(broadcast_title, broadcast_message) {
     let pl1
@@ -220,6 +266,7 @@ function Notice_Upper(broadcast_title, broadcast_message) {
 }
 /**
  * 通知功能
+ * @param {*} origin 传入的origin对象(在注册指令处)
  */
 function Nocite(origin) {
 
@@ -269,6 +316,10 @@ function Nocite(origin) {
 
 /**
  * 递归复制子目录辅助函数
+ * @param {*} src 源文件夹
+ * @param {*} dest 目标文件夹
+ * @param {*} pl 玩家对象
+ * @returns 真(但是貌似没必要返回，具体详见Backup()中的复制文件部分)
  */
 function copyDirectory(src, dest, pl) {
     // 获取源目录下的所有文件和目录
@@ -305,6 +356,7 @@ function copyDirectory(src, dest, pl) {
 }
 /**
  * 备份功能
+ * @param {*} pl 传入玩家对象
  */
 function Backup(pl) {
     // 获取配置文件中Broadcast配置内容
@@ -353,7 +405,7 @@ function Backup(pl) {
         File.mkdir(backup_tmp_path)
     }
 
-
+    // 复制文件(备份存档)
     for (let i = 0; i < world_folder_list.length; i++) {
         let currentPath = world_folder_path + world_folder_list[i]
 
@@ -416,7 +468,7 @@ function Backup(pl) {
 
     // 检查是否拷贝成功
     let check_copy = setInterval(() => {
-        if (copy_return) {
+        if (copy_return) { // 感觉没必要判断复制成功或失败，一般情况都是可以复制成功的
             logger.log(i18n.get("backup_check_copy_success"))
 
             // 全体广播备份情况
@@ -589,6 +641,7 @@ function Loadplugin() {
     // mc.sendCmdOutput("Hello LegacyScriptEngine!") // 模拟产生一个控制台命令输出
 
     mc.listen("onServerStarted", () => {
+        // 清理冗余备份压缩包
         // Clean_Backup_Files()
         // 注册指令
         RegisterCmd()
@@ -600,45 +653,8 @@ function Loadplugin() {
 
 
 
-
-function parseCronExpression(cronExpression) {
-    const fields = cronExpression.split(/\s+/);
-    if (fields.length !== 6) {
-        throw new Error('Cron expression must have 6 space-separated fields.');
-    }
-
-    const [second, minute, hour, day, month, dayOfWeek] = fields;
-
-    // 获取当前时间（仅年月日时分秒）
-    let now = new Date();
-    now.setSeconds(0, 0); // 重置秒和毫秒
-
-    // 辅助函数，用于解析 Cron 字段中的星号、问号、列表、范围和步进
-    function parseField(field) {
-        // 实际实现需要更复杂的逻辑来处理 Cron 字段中的各种模式
-        if (field === '*') return '*';
-        if (field === '?') return '?';
-        // 简化处理，只支持单个数字和星号
-        return parseInt(field, 10);
-    }
-
-    // 简化处理，只支持单个数字和星号
-    const parsedFields = [second, minute, hour, day, month, dayOfWeek].map(parseField);
-
-    // 计算下一个执行时间
-    let nextExecution = new Date(now);
-    nextExecution.setSeconds(parsedFields[0] === '*' ? 0 : parsedFields[0]);
-    nextExecution.setMinutes(parsedFields[1] === '*' ? 0 : parsedFields[1]);
-    nextExecution.setHours(parsedFields[2] === '*' ? 0 : parsedFields[2]);
-
-    // 日期、月份和星期几的处理会更复杂，需要考虑月份的天数和星期几的循环
-    // 这里为了简化，不实现完整的逻辑
-
-    return nextExecution;
-}
-
 // 示例使用
-const cronExpression = '30 40 23 * * *';  // 每小时的第0分钟第0秒执行
+const cronExpression = '20 16 11 * * *';  // 每小时的第0分钟第0秒执行
 let a = parseCronExpression(cronExpression);
 try {
     let nextExecutionTime = parseCronExpression(cronExpression);
