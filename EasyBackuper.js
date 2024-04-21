@@ -21,6 +21,13 @@ const plugin = {
 //     plugin.Other
 // )
 
+
+
+/**
+ * 全局常量模块
+ * (Start)
+ */
+
 // 声明常量
 const plugin_name = "EasyBackuper",
     plugin_version = "v0.1.0",
@@ -33,6 +40,38 @@ const plugin_name = "EasyBackuper",
     world_level_name = /level-name=(.*)/.exec(File.readFrom('./server.properties'))[1], // 获取存档名称
     world_folder_path = `./worlds/${world_level_name}/` // 存档路径
 
+/**
+ * 全局常量模块
+ * (End)
+ */
+
+
+
+/**
+ * 全局变量模块
+ * (Start)
+ */
+
+// 全局变量
+let pl, yes_no_console
+// Cron相关变量
+let scheduled_tasks = pluginConfig.get('Scheduled_Tasks')
+let scheduled_tasks_status = scheduled_tasks['Status']
+let scheduled_tasks_cron = scheduled_tasks['Cron']
+let cronExpr = scheduled_tasks_cron
+let parsed = parseCronExpression(cronExpr)
+
+/**
+ * 全局变量模块
+ * (End)
+ */
+
+
+
+/**
+ * 配置文件模块
+ * (Start)
+ */
 
 // 配置文件初始化
 const pluginConfigFile = {
@@ -147,18 +186,17 @@ let i18nLangConfig = new JsonConfigFile(
 let i18nLocaleName = pluginConfig.get("Language")
 i18n.load(plugin_path + "/i18n/translation.json", i18nLocaleName)
 
+/**
+ * 配置文件模块
+ * (End)
+ */
 
 
-// 全局变量
-let pl, yes_no_console
-// Cron相关变量
-let scheduled_tasks = pluginConfig.get('Scheduled_Tasks')
-let scheduled_tasks_status = scheduled_tasks['Status']
-let scheduled_tasks_cron = scheduled_tasks['Cron']
-let cronExpr = scheduled_tasks_cron
-let parsed = parseCronExpression(cronExpr)
 
-
+/**
+ * Cron解析模块
+ * (Start)
+ */
 
 /**
  * Cron传入函数
@@ -291,7 +329,17 @@ function logCurrentTime() {
     logger.warn('Current time:', now.toDateString(), now.toTimeString())
 }
 
+/**
+ * Cron解析模块
+ * (End)
+ */
 
+
+
+/**
+ * 清理冗余备份文件模块
+ * (Start)
+ */
 
 /**
  * 删除指定文件夹内超过最大备份量的文件
@@ -353,7 +401,17 @@ function Clean_Backup_Files() {
     }
 }
 
+/**
+ * 清理冗余备份文件模块
+ * (End)
+ */
 
+
+
+/**
+ * 通知模块
+ * (Start)
+ */
 
 /**
  * 通知功能(类似于成就获得提示，位于上方,通知全体玩家)
@@ -418,7 +476,17 @@ function Nocite(origin) {
     }
 }
 
+/**
+ * 通知模块
+ * (ENd)
+ */
 
+
+
+/**
+ * 备份模块
+ * (Start)
+ */
 
 /**
  * 递归复制子目录辅助函数
@@ -653,7 +721,17 @@ function Backup(pl) {
     }, 100)
 }
 
+/**
+ * 备份模块
+ * (End)
+ */
 
+
+
+/**
+ * 注册指令模块
+ * (Start)
+ */
 
 /**
  * 注册指令
@@ -722,6 +800,19 @@ function RegisterCmd() {
     cmd.setup() // 指令初始化(必须)
 
 }
+
+/**
+ * 注册指令模块
+ * (End)
+ */
+
+
+
+/**
+ * 加载插件模块
+ * (Start)
+ */
+
 /**
  * 加载插件
  */
@@ -765,6 +856,13 @@ function Loadplugin() {
         }
     })
 }
+
+/**
+ * 加载插件模块
+ * (End)
+ */
+
+
 
 // 加载插件
 Loadplugin()
