@@ -65,7 +65,7 @@ const pluginConfigFile = {
     },
     Scheduled_Tasks: {
         Status: false,
-        Cron: "*/10 * * * * *"
+        Cron: "*/30 * * * * *"
     },
     Broadcast: {
         Status: true,
@@ -80,7 +80,8 @@ const pluginConfigFile = {
         Backup_wrong_Message: "RT"
     },
     Debug_MoreLogs: false,
-    Debug_MoreLogs_Player: false
+    Debug_MoreLogs_Player: false,
+    Debug_MoreLogs_Cron: false
 }
 // i18n国际化文件初始化
 const i18nLangFile = {
@@ -111,13 +112,19 @@ const i18nLangFile = {
         backup_check_compressing: "压缩中...",
         backup_check_compress_success: "压缩成功，压缩包位于：",
         backup_check_compress_wrong: "压缩出错",
-        auto_cleaup_start: "检测开启了自动清理，正在启动中...",
+        auto_backup_status: "自动备份状态：",
+        auto_backup_start: "自动备份正在启动中...",
+        auto_cleanup_status: "自动清理状态：",
+        auto_cleaup_start: "自动清理正在启动中...",
         auto_cleaup_do_not_start: "本小姐看了一下，很干净捏~",
         auto_cleaup_success: "清理成功，清理了：",
         auto_cleaup_wrong: "清理失败！",
         reload_text: "重载中...",
         reload_text_pluginConfig: "配置文件：",
         reload_text_i18nLangConfig: "i18n文件：",
+        debug_morelogs_status: "Debug更多日志状态(控制台)：",
+        debug_morelogs_player_status: "Debug更多日志状态(玩家)：",
+        debug_morelogs_cron_status: "Debug更多日志状态(Cron)："
     },
     en_US: {
         loaded_text_author: "Author",
@@ -143,13 +150,19 @@ const i18nLangFile = {
         backup_check_compressing: "Compressing...",
         backup_check_compress_success: "Compress Success, the archive is located in: ",
         backup_check_compress_wrong: "Compress Wrong",
-        auto_cleaup_start: "Detection is enabled for automatic cleanup, starting...",
+        auto_backup_status: "Auto Backup Status：",
+        auto_backup_start: "Auto Backup is Starting...",
+        auto_cleanup_status: "Automatic Cleanup Status：",
+        auto_cleaup_start: "Automatic Cleanup is Starting...",
         auto_cleaup_do_not_start: "If the number of backup folders does not reach the specified number, the cleanup is stopped",
-        auto_cleaup_success: "Cleanup is success",
-        auto_cleaup_wrong: "Cleanup is wrong",
+        auto_cleaup_success: "Cleanup is Success, Cleaned: ",
+        auto_cleaup_wrong: "Cleanup is Wrong",
         reload_text: "Reloading...",
         reload_text_pluginConfig: "Config File：",
         reload_text_i18nLangConfig: "i18n File：",
+        debug_morelogs_status: "Debug More Logs Status(Console): ",
+        debug_morelogs_player_status: "Debug More Logs Status(Player): ",
+        debug_morelogs_cron_status: "Debug More Logs Status(Cron): "
     },
 }
 // 创建配置文件
@@ -185,10 +198,20 @@ let scheduled_tasks_status = scheduled_tasks['Status']
 let scheduled_tasks_cron = scheduled_tasks['Cron']
 let cronExpr = scheduled_tasks_cron
 let parsed = parseCronExpression(cronExpr)
+
+// 获取配置文件中Auto_Clean配置内容
+let auto_cleaup = pluginConfig.get('Auto_Clean')
+// 读取"Use_Number_Detection"
+let use_number_detection = auto_cleaup['Use_Number_Detection']
+// 读取"Use_Number_Detection"中的Status和Max_Clean_Number
+let use_number_detection_status = use_number_detection['Status']
+let use_number_detection_max_number = use_number_detection['Max_Number']
+
 // Debug相关
 let Debug_Morelogs = pluginConfig.get("Debug_MoreLogs")
 let Debug_Morelogs_Player = pluginConfig.get("Debug_MoreLogs_Player")
-logger.error(Debug_Morelogs, Debug_Morelogs_Player)
+let Debug_Morelogs_Cron = pluginConfig.get("Debug_MoreLogs_Cron")
+let Cron_Use_Backup = true
 
 /**
  * 全局变量模块
@@ -322,6 +345,16 @@ function checkCronAndRun(parsed, callback) {
         return;
     }
 
+    // 退出循环调用(防止过多的调用备份)
+    if (Cron_Use_Backup == false) {
+        // 延迟1.5s后允许下一次Cron检测到后进行调用备份
+        setTimeout(() => {
+            Cron_Use_Backup = true
+        }, 1500);
+        // 退出onTick的循环，防止运行callback()
+        return
+    }
+
     // 如果所有条件都满足，执行回调函数
     callback()
 }
@@ -329,8 +362,19 @@ function checkCronAndRun(parsed, callback) {
  * Cron与当前时间对应时运行代码
  */
 function logCurrentTime() {
-    let now = new Date()
-    logger.warn('Current time:', now.toDateString(), now.toTimeString())
+    // 调试信息(在配置文件中Debug_MoreLogs_Cron开启)
+    if (Debug_Morelogs_Cron) {
+        let now = new Date()
+        logger.warn('[Debug]Current time:', now.toDateString(), now.toTimeString())
+    }
+
+    // 防止1秒内20游戏刻重复调用备份
+    if (Cron_Use_Backup == true) {
+        logger.log(i18n.get('auto_backup_start'))
+        Backup()
+        // 清空数值方便下次被正确调用时可以继续备份
+        Cron_Use_Backup = false
+    }
 }
 
 /**
@@ -388,14 +432,14 @@ function deleteOldBackups(backupDir, maxBackups) {
  */
 function Clean_Backup_Files() {
     // 获取配置文件中Auto_Clean配置内容
-    let auto_cleaup = pluginConfig.get('Auto_Clean')
+    auto_cleaup = pluginConfig.get('Auto_Clean')
     // 读取"Use_Number_Detection"
-    let use_number_detection = auto_cleaup['Use_Number_Detection']
+    use_number_detection = auto_cleaup['Use_Number_Detection']
 
 
     // 读取"Use_Number_Detection"中的Status和Max_Clean_Number
-    let use_number_detection_status = use_number_detection['Status']
-    let use_number_detection_max_number = use_number_detection['Max_Number']
+    use_number_detection_status = use_number_detection['Status']
+    use_number_detection_max_number = use_number_detection['Max_Number']
 
     // 判断选择方式
     if (use_number_detection_status) {
@@ -516,12 +560,13 @@ function copyDirectory(src, dest, pl) {
 
             // 调试信息(在配置文件中Debug_MoreLogs开启)
             if (Debug_Morelogs) {
-                logger.log(srcPath + " ==> " + destPath)
+                logger.log('[Debug]' + srcPath + " ==> " + destPath)
             }
+            // 调试信息(在配置文件中Debug_MoreLogs_Player开启)
             if (Debug_Morelogs_Player) {
                 // 提醒使用该指令玩家
                 if (yes_no_console == 0) {
-                    pl.tell(srcPath + " ==> " + destPath)
+                    pl.tell('[Debug]' + srcPath + " ==> " + destPath)
                 }
             }
 
@@ -588,12 +633,13 @@ function Backup(pl) {
 
         // 调试信息(在配置文件中Debug_MoreLogs开启)
         if (Debug_Morelogs) {
-            logger.log(i18n.get("backup_processing") + `${world_folder_list[i]} --> ${currentPath}`)
+            logger.log('[Debug]' + i18n.get("backup_processing") + `${world_folder_list[i]} --> ${currentPath}`)
         }
+        // 调试信息(在配置文件中Debug_MoreLogs_Player开启)
         if (Debug_Morelogs_Player) {
             // 提醒使用该指令玩家
             if (yes_no_console == 0) {
-                pl.tell(i18n.get("backup_processing") + `${world_folder_list[i]} --> ${currentPath}`)
+                pl.tell('[Debug]' + i18n.get("backup_processing") + `${world_folder_list[i]} --> ${currentPath}`)
             }
         }
 
@@ -630,12 +676,13 @@ function Backup(pl) {
 
         // 调试信息(在配置文件中Debug_MoreLogs开启)
         if (Debug_Morelogs) {
-            log(exit, '\n', out)
+            log('[Debug]' + exit, '\n', out)
         }
+        // 调试信息(在配置文件中Debug_MoreLogs_Player开启)
         if (Debug_Morelogs_Player) {
             // 提醒使用该指令玩家
             if (yes_no_console == 0) {
-                pl.tell(exit + '\n' + out)
+                pl.tell('[Debug]' + exit + '\n' + out)
             }
         }
 
@@ -746,12 +793,18 @@ function ReloadPlugin() {
     // Debug相关
     Debug_Morelogs = pluginConfig.get("Debug_MoreLogs")
     Debug_Morelogs_Player = pluginConfig.get("Debug_MoreLogs_Player")
+    Debug_Morelogs_Cron = pluginConfig.get("Debug_MoreLogs_Cron")
     // Cron配置重载
     scheduled_tasks = pluginConfig.get('Scheduled_Tasks')
     scheduled_tasks_status = scheduled_tasks['Status']
     scheduled_tasks_cron = scheduled_tasks['Cron']
     cronExpr = scheduled_tasks_cron
     parsed = parseCronExpression(cronExpr)
+    // Auto_Clean重载
+    auto_cleaup = pluginConfig.get('Auto_Clean')
+    use_number_detection = auto_cleaup['Use_Number_Detection']
+    use_number_detection_status = use_number_detection['Status']
+    use_number_detection_max_number = use_number_detection['Max_Number']
 
     b = i18nLangConfig.reload() // i18n文件重载
     let i18nLocaleName = pluginConfig.get("Language") // 重载i18n语言选择
@@ -836,11 +889,19 @@ function RegisterCmd() {
             case "reload": // 重载插件配置
                 let a = ReloadPlugin()[0] // 读取返回值数组的第一个
                 let b = ReloadPlugin()[1] // 读取返回值数组的第二个
-                return output.success(i18n.get("reload_text") + '\n' + i18n.get("reload_text_pluginConfig") + a + '\n' + i18n.get("reload_text_i18nLangConfig") + b)
+                let x = i18n.get("reload_text") + '\n' + i18n.get("reload_text_pluginConfig") + a + '\n' + i18n.get("reload_text_i18nLangConfig") + b + '\n'
+                let y = i18n.get("auto_backup_status") + scheduled_tasks_status + '\n' + i18n.get("auto_cleanup_status") + use_number_detection_status + '\n'
+                let z = i18n.get("debug_morelogs_status") + pluginConfig.get('Debug_MoreLogs') + '\n' + i18n.get('debug_morelogs_player_status') + pluginConfig.get('Debug_MoreLogs_Player') + '\n' + i18n.get('debug_morelogs_cron_status') + pluginConfig.get('Debug_MoreLogs_Cron')
+                return output.success(x + y + z)
 
             case "init": // 初始化配置文件
                 InitPluginConfig()
-                return output.success(i18n.get("init_config_file_success"))
+                let c = ReloadPlugin()[0] // 读取返回值数组的第一个
+                let d = ReloadPlugin()[1] // 读取返回值数组的第二个
+                let e = i18n.get("reload_text") + '\n' + i18n.get("reload_text_pluginConfig") + c + '\n' + i18n.get("reload_text_i18nLangConfig") + d + '\n'
+                let f = i18n.get("auto_backup_status") + scheduled_tasks_status + '\n' + i18n.get("auto_cleanup_status") + use_number_detection_status + '\n'
+                let g = i18n.get("debug_morelogs_status") + pluginConfig.get('Debug_MoreLogs') + '\n' + i18n.get('debug_morelogs_player_status') + pluginConfig.get('Debug_MoreLogs_Player') + '\n' + i18n.get('debug_morelogs_cron_status') + pluginConfig.get('Debug_MoreLogs_Cron')
+                return output.success(i18n.get("init_config_file_success") + '\n' + e + f + g)
         }
 
         // 默认/backup指令后执行的代码
@@ -890,6 +951,16 @@ function Loadplugin() {
     logger.log(`\x1b[31m` + i18n.get("loaded_text_copyright") + `\x1b[0m`)
     logger.log(`\x1b[33m` + i18n.get("loaded_text_plugins_github_storehouse") + `：` + i18n.get("loaded_text_plugins_github_storehouse_link") + `\x1b[0m`)
     logger.log(`\x1b[36m` + i18n.get("loaded_text_the_latest_log") + `\x1b[0m  \x1b[33m` + i18n.get("loaded_text_author") + `：` + i18n.get("loaded_text_author_nickname") + `\x1b[0m`)
+    let a = i18n.get("auto_backup_status") + scheduled_tasks_status
+    let b = i18n.get("auto_cleanup_status") + use_number_detection_status
+    let c = i18n.get("debug_morelogs_status") + pluginConfig.get('Debug_MoreLogs')
+    let d =i18n.get('debug_morelogs_player_status') + pluginConfig.get('Debug_MoreLogs_Player')
+    let e = i18n.get('debug_morelogs_cron_status') + pluginConfig.get('Debug_MoreLogs_Cron')
+    logger.log(a)
+    logger.log(b)
+    logger.log(c)
+    logger.log(d)
+    logger.log(e)
     logger.log(`\x1b[36m==============================${plugin_name}===============================\x1b[0m`)
 
 
