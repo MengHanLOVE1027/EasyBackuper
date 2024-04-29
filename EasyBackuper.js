@@ -1,5 +1,5 @@
 // LiteLoader-AIDS automatic generated
-/// <reference path="c:\Users\HeYuHan\LiteDev/dts/HelperLib-master/src/index.d.ts"/>
+/// <reference path="c:\Users\HeYuHan\LiteDev/dts/helperlib/src/index.d.ts"/>
 
 
 // 注册插件
