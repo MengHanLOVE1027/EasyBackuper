@@ -60,7 +60,8 @@ const pluginConfigFile = {
     Auto_Clean: {
         Use_Number_Detection: {
             Status: false,
-            Max_Number: 5
+            Max_Number: 5,
+            Mode: 0
         }
     },
     Scheduled_Tasks: {
@@ -203,9 +204,10 @@ let parsed = parseCronExpression(cronExpr)
 let auto_cleaup = pluginConfig.get('Auto_Clean')
 // 读取"Use_Number_Detection"
 let use_number_detection = auto_cleaup['Use_Number_Detection']
-// 读取"Use_Number_Detection"中的Status和Max_Clean_Number
+// 读取"Use_Number_Detection"中的Status, Max_Clean_Number, Mode
 let use_number_detection_status = use_number_detection['Status']
 let use_number_detection_max_number = use_number_detection['Max_Number']
+let use_number_detection_mode = use_number_detection['Mode']
 
 // Debug相关
 let Debug_Morelogs = pluginConfig.get("Debug_MoreLogs")
@@ -598,6 +600,7 @@ function Backup(pl) {
     // 读取"Backup_wrong_Message"(通知内容)
     let broadcast_Backup_wrong_Message = broadcast['Backup_wrong_Message']
 
+
     // 如果开启广播功能则进行广播
     if (broadcast_status) {
         // type可选数字: 0-普通消息(Raw), 1-聊天消息(Chat) 5-物品栏上方的消息(Tip)
@@ -605,23 +608,28 @@ function Backup(pl) {
         mc.broadcast(i18n.get('backup_broadcast_start'), 5)
     }
 
+
     // 局部变量
     let world_folder_list = File.getFilesList(world_folder_path)
     let copy_return, compress_return
 
+
     // 暂停存档写入
     mc.runcmdEx("save hold")
     logger.log(i18n.get("backup_check_copying")) // 提示信息
+
 
     // 提醒使用该指令玩家
     if (yes_no_console == 0) {
         pl.tell(i18n.get("backup_check_copying"))
     }
 
+
     // 创建备份文件夹
     if (!File.exists(pluginConfig.get("BackupFolderPath"))) {
         File.mkdir(pluginConfig.get("BackupFolderPath"))
     }
+
 
     // 检测tmp文件夹是否存在，清空tmp文件夹
     if (File.exists(backup_tmp_path)) {
@@ -630,6 +638,7 @@ function Backup(pl) {
     } else {
         File.mkdir(backup_tmp_path)
     }
+
 
     // 复制文件(备份存档)
     for (let i = 0; i < world_folder_list.length; i++) {
@@ -661,6 +670,7 @@ function Backup(pl) {
         }
     }
 
+
     // 获取当前时间
     let archive_name = system.getTimeObj().Y + '_' +
         system.getTimeObj().M + '_' +
@@ -668,6 +678,7 @@ function Backup(pl) {
         system.getTimeObj().h + '-' +
         system.getTimeObj().m + '-' +
         system.getTimeObj().s + `[${world_level_name}].zip`
+
 
     // 压缩存档(tmp文件夹)
     system.newProcess(pluginConfig.get("exe_7z_path") + ' a -tzip ' + '"' + pluginConfig.get("BackupFolderPath") + `/${archive_name}` + '"' + ` ${backup_tmp_path}/`, (exit, out) => {
@@ -731,6 +742,7 @@ function Backup(pl) {
         }
     }, 100)
 
+
     // 检查是否压缩成功
     let check_compress = setInterval(() => {
         if (compress_return == 0) {
@@ -749,8 +761,29 @@ function Backup(pl) {
             if (yes_no_console == 0) {
                 pl.tell(i18n.get("backup_check_compress_success") + pluginConfig.get("BackupFolderPath") + `/${archive_name}`)
             }
-
             File.delete(backup_tmp_path)
+
+
+            // 开始清除冗余备份
+            // 获取配置文件中Auto_Clean配置内容
+            auto_cleaup = pluginConfig.get('Auto_Clean')
+            // 读取"Use_Number_Detection"
+            use_number_detection = auto_cleaup['Use_Number_Detection']
+
+            // 读取"Use_Number_Detection"中的Mode模式
+            use_number_detection_mode = use_number_detection['Mode']
+            switch (use_number_detection_mode) {
+                case 1: // 在备份后清理
+                    Clean_Backup_Files()
+                    break;
+
+                case 2: // 在开服时，备份时清理
+                    Clean_Backup_Files()
+                    break;
+                default:
+                    break;
+            }
+
             clearInterval(check_compress) // 退出循环函数
         } else if (compress_return == 1) {
             logger.log(i18n.get("backup_check_compress_wrong"))
@@ -809,6 +842,7 @@ function ReloadPlugin() {
     use_number_detection = auto_cleaup['Use_Number_Detection']
     use_number_detection_status = use_number_detection['Status']
     use_number_detection_max_number = use_number_detection['Max_Number']
+    use_number_detection_mode = use_number_detection['Mode']
 
     b = i18nLangConfig.reload() // i18n文件重载
     let i18nLocaleName = pluginConfig.get("Language") // 重载i18n语言选择
@@ -970,7 +1004,24 @@ function Loadplugin() {
 
     mc.listen("onServerStarted", () => {
         // 清理冗余备份压缩包
-        Clean_Backup_Files()
+        // 获取配置文件中Auto_Clean配置内容
+        auto_cleaup = pluginConfig.get('Auto_Clean')
+        // 读取"Use_Number_Detection"
+        use_number_detection = auto_cleaup['Use_Number_Detection']
+
+        // 读取"Use_Number_Detection"中的Mode模式
+        use_number_detection_mode = use_number_detection['Mode']
+        switch (use_number_detection_mode) {
+            case 0: // 在开服后清理
+                Clean_Backup_Files()
+                break;
+
+            case 2: // 在开服时，备份时清理
+                Clean_Backup_Files()
+                break;
+            default:
+                break;
+        }
         // 注册指令
         RegisterCmd()
     })
