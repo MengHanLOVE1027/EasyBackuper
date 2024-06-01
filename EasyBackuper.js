@@ -267,7 +267,7 @@ function parseCronExpression(cronExpr) {
  * @param {Number} min 最小值
  * @param {Number} max 最大值
  * @param {Boolean} allowNames 是否启用标识符
- * @returns 数组
+ * @returns {Array} 数组
  */
 function parseCronPart(part, min, max, allowNames = false) {
     let values = [];
@@ -306,7 +306,7 @@ function parseCronPart(part, min, max, allowNames = false) {
  * Cron检查并运行
  * @param {JSON} parsed Cron表达式(解析后)
  * @param {Function} callback 回调函数
- * @returns 秒，分，时，日期，月份，星期
+ * @returns {Array} 秒，分，时，日期，月份，星期
  */
 function checkCronAndRun(parsed, callback) {
     let now = new Date()
@@ -546,7 +546,7 @@ function Nocite(origin) {
  * @param {String} src 源文件夹
  * @param {String} dest 目标文件夹
  * @param {Player} pl 玩家对象
- * @returns 真(但是貌似没必要返回，具体详见Backup()中的复制文件部分)
+ * @returns {Boolean}真(但是貌似没必要返回，具体详见Backup()中的复制文件部分)
  */
 function copyDirectory(src, dest, pl) {
     // 获取源目录下的所有文件和目录
