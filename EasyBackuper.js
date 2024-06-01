@@ -229,7 +229,7 @@ let Cron_Use_Backup = true
 
 /**
  * Cron传入函数
- * @param {*} cronExpr Cron表达式
+ * @param {JSON} cronExpr Cron表达式
  * @returns 秒，分，时，日，月，星期，月份
  */
 function parseCronExpression(cronExpr) {
@@ -263,10 +263,10 @@ function parseCronExpression(cronExpr) {
 }
 /**
  * 处理Cron的位置部分是否符合指定范围
- * @param {*} part 位置部分(Cron分开来解析后的顺序)
- * @param {*} min 最小值
- * @param {*} max 最大值
- * @param {*} allowNames 是否启用标识符
+ * @param {String} part 位置部分(Cron分开来解析后的顺序)
+ * @param {Number} min 最小值
+ * @param {Number} max 最大值
+ * @param {Boolean} allowNames 是否启用标识符
  * @returns 数组
  */
 function parseCronPart(part, min, max, allowNames = false) {
@@ -304,8 +304,8 @@ function parseCronPart(part, min, max, allowNames = false) {
 }
 /**
  * Cron检查并运行
- * @param {*} parsed Cron表达式(解析后)
- * @param {*} callback 回调函数
+ * @param {JSON} parsed Cron表达式(解析后)
+ * @param {Function} callback 回调函数
  * @returns 秒，分，时，日期，月份，星期
  */
 function checkCronAndRun(parsed, callback) {
@@ -393,8 +393,8 @@ function logCurrentTime() {
 
 /**
  * 删除指定文件夹内超过最大备份量的文件
- * @param {*} backupDir 备份文件夹路径
- * @param {*} maxBackups 最大保留数量
+ * @param {String} backupDir 备份文件夹路径
+ * @param {Number} maxBackups 最大保留数量
  */
 function deleteOldBackups(backupDir, maxBackups) {
     let goingto_delete_backups = []
@@ -465,8 +465,8 @@ function Clean_Backup_Files() {
 
 /**
  * 通知功能(类似于成就获得提示，位于上方,通知全体玩家)
- * @param {*} broadcast_title 标题
- * @param {*} broadcast_message 内容
+ * @param {String} broadcast_title 标题
+ * @param {String} broadcast_message 内容
  */
 function Notice_Upper(broadcast_title, broadcast_message) {
     let pl1
@@ -479,7 +479,7 @@ function Notice_Upper(broadcast_title, broadcast_message) {
 }
 /**
  * 通知功能
- * @param {*} origin 传入的origin对象(在注册指令处)
+ * @param {CommandOrigin} origin 传入的origin对象(在注册指令处)
  */
 function Nocite(origin) {
     // 当没有传参时默认为BDS调用
@@ -543,9 +543,9 @@ function Nocite(origin) {
 
 /**
  * 递归复制子目录辅助函数
- * @param {*} src 源文件夹
- * @param {*} dest 目标文件夹
- * @param {*} pl 玩家对象
+ * @param {String} src 源文件夹
+ * @param {String} dest 目标文件夹
+ * @param {Player} pl 玩家对象
  * @returns 真(但是貌似没必要返回，具体详见Backup()中的复制文件部分)
  */
 function copyDirectory(src, dest, pl) {
@@ -584,7 +584,7 @@ function copyDirectory(src, dest, pl) {
 }
 /**
  * 备份功能
- * @param {*} pl 传入玩家对象
+ * @param {Player} pl 传入玩家对象
  */
 function Backup(pl) {
     // 获取配置文件中Broadcast配置内容
@@ -822,7 +822,7 @@ function Backup(pl) {
 
 /**
  * 重载配置文件和i18n
- * @returns (数组)配置文件重载状态[0]和i18n重载状态[1]
+ * @returns {Array} (数组)配置文件重载状态[0]和i18n重载状态[1]
  */
 function ReloadPlugin() {
     let a, b, c = []
