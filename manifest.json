@@ -2,7 +2,7 @@
     "entry": "EasyBackuper.js",
     "name": "EasyBackuper",
     "type": "lse-quickjs",
-    "description": "简单化的LSE - JS备份插件",
+    "description": "基于 LeviLamina - LSE引擎 的 最最最简单的JS热备份插件",
     "author": "MengHanLOVE1027",
     "version": "0.2.9",
     "dependencies": [
