@@ -1,6 +1,6 @@
 # EasyBackuper
 
-简单化的LSE - JS备份插件
+基于 LeviLamina - LSE引擎 的 最最最简单的JS热备份插件
 
 ## Install
 
