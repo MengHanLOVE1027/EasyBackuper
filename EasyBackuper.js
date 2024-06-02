@@ -5,7 +5,7 @@
 // 注册插件
 const plugin = {
     Name: "EasyBackuper",
-    Introduction: "简单化的LSE - JS备份插件 v0.2.9 作者: 梦涵LOVE",
+    Introduction: "基于 LeviLamina - LSE引擎 的 最最最简单的JS热备份插件 v0.2.9 作者: 梦涵LOVE",
     Version: [0, 2, 9],
     Other: {
         Author: "梦涵LOVE",
