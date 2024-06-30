@@ -21,4 +21,4 @@ PRs are welcome.
 
 ## License
 
-GPL-3.0-or-later © MengHanLOVE1027
+AGPL-3.0-or-later © MengHanLOVE1027
