@@ -14,9 +14,6 @@
         ]
     },
     "asset_url": "https://github.com/MengHanLOVE1027/EasyBackuper/releases/download/v0.2.9/EasyBackuper-v0.2.9.zip",
-    "prerequisites": {
-        "github.com/LiteLDev/LeviLamina": "0.12.x"
-    },
     "files": {
         "place": [
             {
