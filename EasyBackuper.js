@@ -1,11 +1,12 @@
 // LiteLoader-AIDS automatic generated
-/// <reference path="c:\Users\HeYuHan\LiteDev/dts/helperlib/src/index.d.ts"/>
+/// <reference path="c:\Users\HeYuHan\.LiteDev/dts/helperlib/src/index.d.ts"/>
 
 
-// 注册插件
+// TAG: 注册插件
+// #region 注册插件
 const plugin = {
     Name: "EasyBackuper",
-    Introduction: "基于 LeviLamina - LSE引擎 的 最最最简单的JS热备份插件 v0.2.9 作者: 梦涵LOVE",
+    Introduction: "简单化的LSE - JS备份插件 v0.2.9 作者: 梦涵LOVE",
     Version: [0, 2, 9],
     Other: {
         Author: "梦涵LOVE",
@@ -13,21 +14,11 @@ const plugin = {
         License: "GPL-3.0 license",
     },
 }
-// LL3弃用并改用manifest.json加载插件信息
-// ll.registerPlugin(
-//     plugin.Name,
-//     plugin.Introduction,
-//     plugin.Version,
-//     plugin.Other
-// )
+// #endregion
 
 
-
-/**
- * 全局常量模块
- * (Start)
- */
-
+// TAG: 全局常量模块
+// #region 全局常量模块
 // 声明常量
 const plugin_name = "EasyBackuper",
     plugin_version = "v0.2.9",
@@ -39,19 +30,11 @@ const plugin_name = "EasyBackuper",
     backup_tmp_path = "./backup_tmp/", // 临时复制解压缩路径
     world_level_name = /level-name=(.*)/.exec(File.readFrom('./server.properties'))[1], // 获取存档名称
     world_folder_path = `./worlds/${world_level_name}/` // 存档路径
-
-/**
- * 全局常量模块
- * (End)
- */
+// #endregion
 
 
-
-/**
- * 配置文件模块
- * (Start)
- */
-
+// TAG: 配置文件模块
+// #region 配置文件模块
 // 配置文件初始化
 const pluginConfigFile = {
     Language: "zh_CN",
@@ -84,6 +67,7 @@ const pluginConfigFile = {
     Debug_MoreLogs_Player: false,
     Debug_MoreLogs_Cron: false
 }
+// #region i18n国际化文件初始化
 // i18n国际化文件初始化
 const i18nLangFile = {
     localeName: {
@@ -166,6 +150,8 @@ const i18nLangFile = {
         debug_morelogs_cron_status: "Debug More Logs Status(Cron): "
     },
 }
+// #endregion
+
 // 创建配置文件
 let pluginConfig = new JsonConfigFile(
     plugin_path + `/config/${plugin_name}.json`,
@@ -178,19 +164,11 @@ let i18nLangConfig = new JsonConfigFile(
 // 加载i18n国际化文件
 let i18nLocaleName = pluginConfig.get("Language")
 i18n.load(plugin_path + "/i18n/translation.json", i18nLocaleName)
-
-/**
- * 配置文件模块
- * (End)
- */
+// #endregion
 
 
-
-/**
- * 全局变量模块
- * (Start)
- */
-
+// TAG: 全局变量模块
+// #region 全局变量模块
 // 全局变量
 let pl, yes_no_console
 // Cron相关变量
@@ -214,19 +192,14 @@ let Debug_Morelogs = pluginConfig.get("Debug_MoreLogs")
 let Debug_Morelogs_Player = pluginConfig.get("Debug_MoreLogs_Player")
 let Debug_Morelogs_Cron = pluginConfig.get("Debug_MoreLogs_Cron")
 let Cron_Use_Backup = true
-
-/**
- * 全局变量模块
- * (End)
- */
+// #endregion
 
 
 
-/**
- * Cron解析模块
- * (Start)
- */
 
+
+// TAG: Cron解析模块
+// #region Cron解析模块
 /**
  * Cron传入函数
  * @param {JSON} cronExpr Cron表达式
@@ -373,24 +346,22 @@ function logCurrentTime() {
     // 防止1秒内20游戏刻重复调用备份
     if (Cron_Use_Backup == true) {
         logger.log(i18n.get('auto_backup_start'))
-        Nocite()
+        Start()
         // 清空数值方便下次被正确调用时可以继续备份
         Cron_Use_Backup = false
     }
 }
-
-/**
- * Cron解析模块
- * (End)
- */
+// #endregion
 
 
 
-/**
- * 清理冗余备份文件模块
- * (Start)
- */
 
+
+// TAG: 清理冗余备份文件模块
+// #region 清理冗余备份文件模块
+
+// NOTE: (有日志输出)删除指定文件夹内超过最大备份量的文件
+// #region 删除指定文件夹内超过最大备份量的文件
 /**
  * 删除指定文件夹内超过最大备份量的文件
  * @param {String} backupDir 备份文件夹路径
@@ -429,6 +400,10 @@ function deleteOldBackups(backupDir, maxBackups) {
         logger.log(i18n.get('auto_cleaup_do_not_start'))
     }
 }
+// #endregion
+
+// NOTE: (有日志输出)清理多余备份文件
+// #region 清理多余备份文件
 /**
  * 清理多余备份文件
  */
@@ -450,19 +425,14 @@ function Clean_Backup_Files() {
         deleteOldBackups(pluginConfig.get('BackupFolderPath'), use_number_detection_max_number)
     }
 }
-
-/**
- * 清理冗余备份文件模块
- * (End)
- */
+// #endregion
+// #endregion
 
 
+// TAG: 通知模块(包含开始运行)
+// #region 通知模块(包含开始运行)
 
-/**
- * 通知模块
- * (Start)
- */
-
+// #region 通知功能(类似于成就获得提示，位于上方,通知全体玩家)
 /**
  * 通知功能(类似于成就获得提示，位于上方,通知全体玩家)
  * @param {String} broadcast_title 标题
@@ -477,11 +447,15 @@ function Notice_Upper(broadcast_title, broadcast_message) {
         pl1.sendToast(broadcast_title, broadcast_message)
     }
 }
+// #endregion
+
+// NOTE: 开始运行
+// #region 开始运行
 /**
- * 通知功能
+ * 开始运行
  * @param {CommandOrigin} origin 传入的origin对象(在注册指令处)
  */
-function Nocite(origin) {
+function Start(origin) {
     // 当没有传参时默认为BDS调用
     if (typeof origin === 'undefined') {
         yes_no_console = 1
@@ -528,19 +502,13 @@ function Nocite(origin) {
         Notice_Upper(broadcast_server_title, broadcast_server_message)
     }
 }
-
-/**
- * 通知模块
- * (End)
- */
+// #endregion
+// #endregion
 
 
-
-/**
- * 备份模块
- * (Start)
- */
-
+// TAG: 辅助备份模块
+// NOTE: (调试信息)递归复制子目录辅助函数
+// #region 递归复制子目录辅助函数
 /**
  * 递归复制子目录辅助函数
  * @param {String} src 源文件夹
@@ -563,7 +531,6 @@ function copyDirectory(src, dest, pl) {
             // 递归复制子目录
             copyDirectory(srcPath, backupSubDirPath, pl)
         } else {
-
             // 调试信息(在配置文件中Debug_MoreLogs开启)
             if (Debug_Morelogs) {
                 logger.log('[Debug]' + srcPath + " ==> " + destPath)
@@ -582,6 +549,12 @@ function copyDirectory(src, dest, pl) {
     }
     return true
 }
+// #endregion
+
+
+// TAG: 备份模块
+// NOTE: (调试信息)备份功能
+// #region 备份功能
 /**
  * 备份功能
  * @param {Player} pl 传入玩家对象
@@ -599,6 +572,9 @@ function Backup(pl) {
     let broadcast_Backup_wrong_Title = broadcast['Backup_wrong_Title']
     // 读取"Backup_wrong_Message"(通知内容)
     let broadcast_Backup_wrong_Message = broadcast['Backup_wrong_Message']
+    // 局部变量
+    let world_folder_list = File.getFilesList(world_folder_path)
+    let copy_return, compress_return
 
 
     // 如果开启广播功能则进行广播
@@ -609,38 +585,27 @@ function Backup(pl) {
     }
 
 
-    // 局部变量
-    let world_folder_list = File.getFilesList(world_folder_path)
-    let copy_return, compress_return
-
-
-    // 暂停存档写入
+    // NOTE: 暂停存档写入
     mc.runcmdEx("save hold")
     logger.log(i18n.get("backup_check_copying")) // 提示信息
-
-
     // 提醒使用该指令玩家
     if (yes_no_console == 0) {
         pl.tell(i18n.get("backup_check_copying"))
     }
 
-
-    // 创建备份文件夹
+    // NOTE: 创建备份文件夹
     if (!File.exists(pluginConfig.get("BackupFolderPath"))) {
         File.mkdir(pluginConfig.get("BackupFolderPath"))
     }
-
-
-    // 检测tmp文件夹是否存在，清空tmp文件夹
+    // NOTE: 检测tmp文件夹是否存在，清空tmp文件夹
     if (File.exists(backup_tmp_path)) {
         File.delete(backup_tmp_path)
         File.mkdir(backup_tmp_path)
     } else {
         File.mkdir(backup_tmp_path)
     }
-
-
-    // 复制文件(备份存档)
+    // NOTE: 复制文件(备份存档)
+    // #region 复制文件(备份存档)
     for (let i = 0; i < world_folder_list.length; i++) {
         let currentPath = world_folder_path + world_folder_list[i]
 
@@ -669,9 +634,10 @@ function Backup(pl) {
             File.copy(currentPath, backup_tmp_path)
         }
     }
+    // #endregion
 
 
-    // 获取当前时间
+    // NOTE: 获取当前时间
     let archive_name = system.getTimeObj().Y + '_' +
         system.getTimeObj().M + '_' +
         system.getTimeObj().D + '=' +
@@ -680,7 +646,8 @@ function Backup(pl) {
         system.getTimeObj().s + `[${world_level_name}].zip`
 
 
-    // 压缩存档(tmp文件夹)
+    // NOTE: 压缩存档(tmp文件夹)
+    // #region 压缩存档(tmp文件夹)
     system.newProcess(pluginConfig.get("exe_7z_path") + ' a -tzip ' + '"' + pluginConfig.get("BackupFolderPath") + `/${archive_name}` + '"' + ` ${backup_tmp_path}/`, (exit, out) => {
         logger.log(i18n.get("backup_check_compressing")) // 提示信息
 
@@ -703,9 +670,11 @@ function Backup(pl) {
 
         compress_return = exit
     })
+    // #endregion
 
 
-    // 检查是否拷贝成功
+    // NOTE: 检查是否拷贝成功
+    // #region 检查是否拷贝成功
     let check_copy = setInterval(() => {
         if (copy_return) { // 感觉没必要判断复制成功或失败，一般情况都是可以复制成功的
             logger.log(i18n.get("backup_check_copy_success"))
@@ -741,9 +710,11 @@ function Backup(pl) {
             clearInterval(check_copy) // 退出循环函数
         }
     }, 100)
+    // #endregion
 
 
-    // 检查是否压缩成功
+    // NOTE: 检查是否压缩成功
+    // #region 检查是否压缩成功
     let check_compress = setInterval(() => {
         if (compress_return == 0) {
             logger.log(i18n.get("backup_check_compress_success") + pluginConfig.get("BackupFolderPath") + `/${archive_name}`)
@@ -806,20 +777,17 @@ function Backup(pl) {
             clearInterval(check_compress) // 退出循环函数
         }
     }, 100)
+    // #endregion
 }
-
-/**
- * 备份模块
- * (End)
- */
+// #endregion
 
 
 
-/**
- * 重载插件模块
- * (Start)
- */
 
+
+
+// TAG: 重载插件模块
+// #region 重载配置文件和i18n
 /**
  * 重载配置文件和i18n
  * @returns {Array} (数组)配置文件重载状态[0]和i18n重载状态[1]
@@ -852,22 +820,11 @@ function ReloadPlugin() {
     c.push(a, b)
     return c
 }
-
-/**
- * 重载插件模块
- * (End)
- */
+// #endregion
 
 
-
-/**
- * 初始化配置文件模块
- * (Start)
- */
-
-/**
- * 初始化配置文件和i18n
- */
+// TAG: 初始化配置文件模块
+// #region 初始化配置文件模块
 function InitPluginConfig() {
     // 检测配置文件是否存在
     if (File.exists(plugin_path + "/i18n/translation.json")) {
@@ -887,19 +844,13 @@ function InitPluginConfig() {
         JSON.stringify(i18nLangFile)
     )
 }
-
-/**
- * 初始化配置文件模块
- * (End)
- */
+// #endregion
 
 
 
-/**
- * 注册指令模块
- * (Start)
- */
 
+// TAG: 注册指令模块
+// #region 注册指令
 /**
  * 注册指令
  */
@@ -921,6 +872,8 @@ function RegisterCmd() {
     cmd.overload(["ReloadAction"]) // 指令重载(必须有的且我不理解的东西)
     cmd.overload(["InitConfig"]) // 同上
 
+    // NOTE: 指令回调处理
+    // #region 指令回调处理
     cmd.setCallback((_cmd, origin, output, results) => {
         // 如果有选项就进行判断
         switch (results.action) {
@@ -944,29 +897,23 @@ function RegisterCmd() {
 
         // 默认/backup指令后执行的代码
         // 当玩家执行时检测并传参
-        Nocite(origin)
+        Start(origin)
 
     })
+    // #endregion
     cmd.setup() // 指令初始化(必须)
 
 }
-
-/**
- * 注册指令模块
- * (End)
- */
+// #endregion
 
 
-
-/**
- * 加载插件模块
- * (Start)
- */
-
+// TAG: 加载插件模块
+// #region 加载插件
 /**
  * 加载插件
  */
 function Loadplugin() {
+    // NOTE: 输出插件LOGO
     logger.setTitle(`\x1b[32m${plugin_name}\x1b[0m`) // 设置日志头
     logger.log(`
 ===============================================================================================================
@@ -978,14 +925,14 @@ function Loadplugin() {
     /**       **////**  /////**   **     /*    /** **////** /**   **/**/** /**  /** /**///  /**////  /**   
     /********//******** ******   **      /******* //********//***** /**//**//****** /**     //******/***   
     ////////  //////// //////   //       ///////   ////////  /////  //  //  /////// /*     ////// ///    
-                            \x1b[33m`+ i18n.get("loaded_text_author") + `：` + i18n.get("loaded_text_author_nickname") + `                        \x1b[13047m` + i18n.get("loaded_text_version") + `：${plugin_version}[${i18nLocaleName}]\x1b[0m
+                            \x1b[33m`+ i18n.get("loaded_text_author") + `：` + i18n.get("loaded_text_author_nickname") + `                        \x1b[1;30;47m` + i18n.get("loaded_text_version") + `：${plugin_version}[${i18nLocaleName}]\x1b[0m
 ===============================================================================================================`)
 
 
     logger.log(`\x1b[36m==============================${plugin_name}==============================\x1b[0m`)
-    logger.log(`\x1b[3743m` + i18n.get("loaded_text_plugin_installed_success") + `\x1b[0m`)
-    logger.log(`\x1b[3743m` + i18n.get("loaded_text_version") + `: \x1b[13047m${plugin_version}\x1b[0m`)
-    logger.log(`\x1b[135m` + i18n.get("loaded_text_the_helps") + `\x1b[0m`)
+    logger.log(`\x1b[37;43m` + i18n.get("loaded_text_plugin_installed_success") + `\x1b[0m`)
+    logger.log(`\x1b[37;43m` + i18n.get("loaded_text_version") + `: \x1b[0m\x1b[1;30;47m${plugin_version}\x1b[0m`)
+    logger.log(`\x1b[1;35m` + i18n.get("loaded_text_the_helps") + `\x1b[0m`)
     logger.log(`\x1b[31m` + i18n.get("loaded_text_copyright") + `\x1b[0m`)
     logger.log(`\x1b[33m` + i18n.get("loaded_text_plugins_github_storehouse") + `：` + i18n.get("loaded_text_plugins_github_storehouse_link") + `\x1b[0m`)
     logger.log(`\x1b[36m` + i18n.get("loaded_text_the_latest_log") + `\x1b[0m  \x1b[33m` + i18n.get("loaded_text_author") + `：` + i18n.get("loaded_text_author_nickname") + `\x1b[0m`)
@@ -1001,7 +948,7 @@ function Loadplugin() {
     logger.log(e)
     logger.log(`\x1b[36m==============================${plugin_name}===============================\x1b[0m`)
 
-
+    // NOTE: "onServerStarted"
     mc.listen("onServerStarted", () => {
         // 清理冗余备份压缩包
         // 获取配置文件中Auto_Clean配置内容
@@ -1025,6 +972,7 @@ function Loadplugin() {
         // 注册指令
         RegisterCmd()
     })
+    // NOTE: "onTick"
     mc.listen("onTick", () => {
         // 是否开启Cron定时任务
         if (scheduled_tasks_status) {
@@ -1033,11 +981,8 @@ function Loadplugin() {
         }
     })
 }
+// #endregion
 
-/**
- * 加载插件模块
- * (End)
- */
 
 
 
