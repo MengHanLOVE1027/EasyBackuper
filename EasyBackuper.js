@@ -11,7 +11,7 @@ const plugin = {
     Other: {
         Author: "梦涵LOVE",
         Github: "https://github.com/MengHanLOVE1027/EasyBackuper",
-        License: "GPL-3.0 license",
+        License: "AGPL-3.0 license",
     },
 }
 // #endregion
