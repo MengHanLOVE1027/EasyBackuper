@@ -1,7 +1,7 @@
 {
     "format_version": 2,
     "tooth": "github.com/MengHanLOVE1027/EasyBackuper",
-    "version": "0.2.9",
+    "version": "0.3.0",
     "info": {
         "name": "EasyBackuper",
         "description": "基于 LeviLamina - LSE引擎 的 最最最简单的JS热备份插件",
@@ -10,10 +10,11 @@
             "levilamina",
             "lse",
             "plugin",
-            "ezbackuper"
+            "ezbackuper",
+            "easybackuper"
         ]
     },
-    "asset_url": "https://github.com/MengHanLOVE1027/EasyBackuper/releases/download/v0.2.9/EasyBackuper-v0.2.9.zip",
+    "asset_url": "https://github.com/MengHanLOVE1027/EasyBackuper/releases/download/v0.3.0/EasyBackuper-v0.3.0.zip",
     "files": {
         "place": [
             {
