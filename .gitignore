@@ -2,7 +2,9 @@
 build/
 config/
 i18n/
+dist/
 .vscode
 
 7za.exe
 *.zip
+mhlove-truncate.exe

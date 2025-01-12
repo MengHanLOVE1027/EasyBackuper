@@ -6,8 +6,8 @@
 // #region 注册插件
 const plugin = {
     Name: "EasyBackuper",
-    Introduction: "简单化的LSE - JS备份插件 v0.3.0 作者: 梦涵LOVE",
-    Version: [0, 3, 0],
+    Introduction: "简单化的LSE - JS备份插件 v0.4.0 作者: 梦涵LOVE",
+    Version: [0, 4, 0],
     Other: {
         Author: "梦涵LOVE",
         Github: "https://github.com/MengHanLOVE1027/EasyBackuper",
@@ -21,7 +21,7 @@ const plugin = {
 // #region 全局常量模块
 // 声明常量
 const plugin_name = "EasyBackuper",
-    plugin_version = "v0.3.0",
+    plugin_version = "v0.4.0",
     cmd_name = "backup",
     cmd_alias = "easybackuper",
     plugin_path = `./plugins/${plugin_name}`,
@@ -38,7 +38,8 @@ const plugin_name = "EasyBackuper",
 // 配置文件初始化
 const pluginConfigFile = {
     Language: "zh_CN",
-    exe_7z_path: "./plugins/EasyBackuper/7za.exe",
+    exe_7z_path: ".\\plugins\\EasyBackuper\\7za.exe",
+    exe_mhlove_truncate_path: ".\\plugins\\EasyBackuper\\mhlove-truncate.exe",
     BackupFolderPath: "./backup/",
     Auto_Clean: {
         Use_Number_Detection: {
@@ -88,14 +89,16 @@ const i18nLangFile = {
         backup_broadcast_start: "§2§l[EasyBackuper]§r§3开始备份力！",
         backup_broadcast_check_copy_success: "§2§l[EasyBackuper]§r§6拷贝成功！",
         backup_broadcast_check_copy_wrong: "§2§l[EasyBackuper]§r§c拷贝失败！",
-        backup_broadcast_check_compress_success: "§2§l[EasyBackuper]§r§6备份成功！",
+        backup_broadcast_check_compress_success: "§2§l[EasyBackuper]§r§6备份成功！§e备份存档：",
         backup_broadcast_check_compress_wrong: "§2§l[EasyBackuper]§r§c备份失败！",
         backup_processing: "操作中：",
         backup_check_copying: "拷贝中...",
         backup_check_copy_success: "拷贝成功",
         backup_check_copy_wrong: "拷贝出错",
+        backup_truncate_success: "截取成功",
+        backup_truncate_wrong: "截取失败",
         backup_check_compressing: "压缩中...",
-        backup_check_compress_success: "压缩成功，压缩包位于：",
+        backup_check_compress_success: "备份成功！压缩包位于：",
         backup_check_compress_wrong: "压缩出错",
         auto_backup_status: "自动备份状态：",
         auto_backup_start: "自动备份正在启动中...",
@@ -125,21 +128,23 @@ const i18nLangFile = {
         init_config_file_success: "Init Configs Success",
         backup_broadcast_start: "§2[EasyBackuper]§r§3Start the backup",
         backup_broadcast_check_copy_success: "§2[EasyBackuper]§r§6Copy Success!",
-        backup_broadcast_check_copy_wrong: "§2[EasyBackuper]§r§cCopy Wrong",
-        backup_broadcast_check_compress_success: "§2[EasyBackuper]§r§cCompress Success",
-        backup_broadcast_check_compress_wrong: "§2[EasyBackuper]§r§cCompress Wrong",
+        backup_broadcast_check_copy_wrong: "§2[EasyBackuper]§r§cCopy Wrong!",
+        backup_broadcast_check_compress_success: "§2[EasyBackuper]§r§cBackup Success! §eThe archive is: ",
+        backup_broadcast_check_compress_wrong: "§2[EasyBackuper]§r§cBackup Wrong!",
         backup_processing: "Processing: ",
         backup_check_copying: "Copying...",
         backup_check_copy_success: "Copy Success",
         backup_check_copy_wrong: "Copy Wrong",
+        backup_truncate_success: "Truncate Success",
+        backup_truncate_wrong: "Truncate Wrong",
         backup_check_compressing: "Compressing...",
-        backup_check_compress_success: "Compress Success, the archive is located in: ",
+        backup_check_compress_success: "Backup Success! The archive is located in: ",
         backup_check_compress_wrong: "Compress Wrong",
         auto_backup_status: "Auto Backup Status: ",
         auto_backup_start: "Auto Backup is Starting...",
         auto_cleanup_status: "Automatic Cleanup Status: ",
         auto_cleaup_start: "Automatic Cleanup is Starting...",
-        auto_cleaup_do_not_start: "If the number of backup folders does not reach the specified number, the cleanup is stopped",
+        auto_cleaup_do_not_start: "The number of backup folders does not reach the specified number, the cleanup is stopped",
         auto_cleaup_success: "Cleanup is Success, Cleaned: ",
         auto_cleaup_wrong: "Cleanup is Wrong",
         reload_text: "Reloading...",
@@ -374,18 +379,75 @@ function deleteOldBackups(backupDir, maxBackups) {
     // 列出指定文件夹下的所有文件
     let filesList = File.getFilesList(backupDir)
 
+    // 按照文件名中的日期时间部分进行排序
+    filesList.sort((a, b) => {
+        let dateA = new Date(a.split('=')[0].replace(/_/g, '-'))
+        let dateB = new Date(b.split('=')[0].replace(/_/g, '-'))
+        return dateA - dateB
+    })
+
+    // 调试信息(在配置文件中Debug_MoreLogs开启)
+    if (Debug_Morelogs) {
+        logger.info('[Debug] ' + "存档文件夹内的文件: ")
+    }
+    // 调试信息(在配置文件中Debug_MoreLogs_Player开启)
+    if (Debug_Morelogs_Player) {
+        // 提醒使用该指令玩家
+        if (yes_no_console == 0) {
+            logger.info('[Debug] ' + "存档文件夹内的文件: ")
+        }
+    }
+
     // 当备份文件夹文件大于用户设置最大保留值时
     if (filesList.length > maxBackups) {
         for (let file of filesList) {
             // 添加至数组
+
+            // 调试信息(在配置文件中Debug_MoreLogs开启)
+            if (Debug_Morelogs) {
+                logger.info('[Debug] ' + file)
+            }
+            // 调试信息(在配置文件中Debug_MoreLogs_Player开启)
+            if (Debug_Morelogs_Player) {
+                // 提醒使用该指令玩家
+                if (yes_no_console == 0) {
+                    logger.info('[Debug] ' + file)
+                }
+            }
+
             goingto_delete_backups.push(file)
         }
         // 计算差值
         let a = filesList.length - maxBackups
+
+        // 调试信息(在配置文件中Debug_MoreLogs开启)
+        if (Debug_Morelogs) {
+            logger.warn('[Debug] ' + "需要删除的存档: ")
+        }
+        // 调试信息(在配置文件中Debug_MoreLogs_Player开启)
+        if (Debug_Morelogs_Player) {
+            // 提醒使用该指令玩家
+            if (yes_no_console == 0) {
+                logger.warn('[Debug] ' + "需要删除的存档: ")
+            }
+        }
+
         for (let i = 0; i < a; i++) {
             // 获取删除的文件名保存在数组内
             ending.push(goingto_delete_backups[i])
             err_out = File.delete(pluginConfig.get('BackupFolderPath') + '/' + goingto_delete_backups[i])
+
+            // 调试信息(在配置文件中Debug_MoreLogs开启)
+            if (Debug_Morelogs) {
+                logger.warn('[Debug] ' + goingto_delete_backups[i])
+            }
+            // 调试信息(在配置文件中Debug_MoreLogs_Player开启)
+            if (Debug_Morelogs_Player) {
+                // 提醒使用该指令玩家
+                if (yes_no_console == 0) {
+                    logger.warn('[Debug] ' + goingto_delete_backups[i])
+                }
+            }
         }
         // 对返回值进行判断是否成功运行
         if (err_out) {
@@ -461,7 +523,7 @@ function Start(origin) {
         yes_no_console = 1
     } else {
         // 判断指令主体是什么(重中之重)
-        if (origin.typeName == 'Virtual') {
+        if (origin.typeName == 'Player') {
             // 设置玩家对象
             pl = mc.getPlayer(origin.player.realName)
             yes_no_console = 0
@@ -586,198 +648,289 @@ function Backup(pl) {
 
 
     // NOTE: 暂停存档写入
-    mc.runcmdEx("save hold")
+    mc.runcmd("save hold")
     logger.log(i18n.get("backup_check_copying")) // 提示信息
     // 提醒使用该指令玩家
     if (yes_no_console == 0) {
         pl.tell(i18n.get("backup_check_copying"))
     }
 
-    // NOTE: 创建备份文件夹
-    if (!File.exists(pluginConfig.get("BackupFolderPath"))) {
-        File.mkdir(pluginConfig.get("BackupFolderPath"))
-    }
-    // NOTE: 检测tmp文件夹是否存在，清空tmp文件夹
-    if (File.exists(backup_tmp_path)) {
-        File.delete(backup_tmp_path)
-        File.mkdir(backup_tmp_path)
-    } else {
-        File.mkdir(backup_tmp_path)
-    }
-    // NOTE: 复制文件(备份存档)
-    // #region 复制文件(备份存档)
-    for (let i = 0; i < world_folder_list.length; i++) {
-        let currentPath = world_folder_path + world_folder_list[i]
+    // TAG: save query模块
+    // NOTE: save query模块
+    // #region save query模块
+    /**
+     * save query模块
+     * @returns {Boolean} 真(成功+附带输出结果)假(失败)
+     */
+    function save_query() {
+        let return_value = mc.runcmdEx('save query')
+        let messages = return_value.output
+        let ready = return_value.success
 
-        // 调试信息(在配置文件中Debug_MoreLogs开启)
-        if (Debug_Morelogs) {
-            logger.log('[Debug]' + i18n.get("backup_processing") + `${world_folder_list[i]} --> ${currentPath}`)
-        }
-        // 调试信息(在配置文件中Debug_MoreLogs_Player开启)
-        if (Debug_Morelogs_Player) {
-            // 提醒使用该指令玩家
-            if (yes_no_console == 0) {
-                pl.tell('[Debug]' + i18n.get("backup_processing") + `${world_folder_list[i]} --> ${currentPath}`)
-            }
+        if (!ready) {
+            logger.error('The server is not ready to save!!!')
+            mc.runcmd("save resume")
+            return false
         }
 
-        // 检查是否为目录
-        if (File.checkIsDir(currentPath)) {
-            // 创建备份目录
-            let backupDirPath = backup_tmp_path + world_folder_list[i]
-            File.mkdir(backupDirPath)
+        // logger.info('The server is ready to save!!!')
 
-            // 递归复制子目录
-            copy_return = copyDirectory(currentPath, backupDirPath, pl)
-        } else {
-            // 如果是文件，直接复制
-            File.copy(currentPath, backup_tmp_path)
+
+        // NOTE: 创建备份文件夹
+        if (!File.exists(pluginConfig.get("BackupFolderPath"))) {
+            File.mkdir(pluginConfig.get("BackupFolderPath"))
         }
-    }
-    // #endregion
-
-
-    // NOTE: 获取当前时间
-    let archive_name = system.getTimeObj().Y + '_' +
-        system.getTimeObj().M + '_' +
-        system.getTimeObj().D + '=' +
-        system.getTimeObj().h + '-' +
-        system.getTimeObj().m + '-' +
-        system.getTimeObj().s + `[${world_level_name}].zip`
-
-
-    // NOTE: 压缩存档(tmp文件夹)
-    // #region 压缩存档(tmp文件夹)
-    system.newProcess(pluginConfig.get("exe_7z_path") + ' a -tzip ' + '"' + pluginConfig.get("BackupFolderPath") + `/${archive_name}` + '"' + ` ${backup_tmp_path}/`, (exit, out) => {
-        logger.log(i18n.get("backup_check_compressing")) // 提示信息
-
-        // 提醒使用该指令玩家
-        if (yes_no_console == 0) {
-            pl.tell(i18n.get("backup_check_compressing"))
-        }
-
-        // 调试信息(在配置文件中Debug_MoreLogs开启)
-        if (Debug_Morelogs) {
-            log('[Debug]' + exit, '\n', out)
-        }
-        // 调试信息(在配置文件中Debug_MoreLogs_Player开启)
-        if (Debug_Morelogs_Player) {
-            // 提醒使用该指令玩家
-            if (yes_no_console == 0) {
-                pl.tell('[Debug]' + exit + '\n' + out)
-            }
-        }
-
-        compress_return = exit
-    })
-    // #endregion
-
-
-    // NOTE: 检查是否拷贝成功
-    // #region 检查是否拷贝成功
-    let check_copy = setInterval(() => {
-        if (copy_return) { // 感觉没必要判断复制成功或失败，一般情况都是可以复制成功的
-            logger.log(i18n.get("backup_check_copy_success"))
-
-            // 全体广播备份情况
-            // type可选数字: 0-普通消息(Raw), 1-聊天消息(Chat) 5-物品栏上方的消息(Tip)
-            if (broadcast_status) {
-                mc.broadcast(i18n.get('backup_broadcast_check_copy_success'), 0)
-                mc.broadcast(i18n.get('backup_broadcast_check_copy_success'), 5)
-            }
-            // 提醒使用该指令玩家
-            if (yes_no_console == 0) {
-                pl.tell(i18n.get("backup_check_copy_success"))
-            }
-
-            mc.runcmdEx("save resume") // 恢复存档写入
-            clearInterval(check_copy) // 退出循环函数
-        } else {
-            logger.log(i18n.get("backup_check_copy_wrong"))
-
-            // 全体广播备份情况
-            // type可选数字: 0-普通消息(Raw), 1-聊天消息(Chat) 5-物品栏上方的消息(Tip)
-            if (broadcast_status) {
-                mc.broadcast(i18n.get('backup_broadcast_check_copy_wrong'), 0)
-                mc.broadcast(i18n.get('backup_broadcast_check_copy_wrong'), 5)
-            }
-            // 提醒使用该指令玩家
-            if (yes_no_console == 0) {
-                pl.tell(i18n.get("backup_check_copy_wrong"))
-            }
-
-            mc.runcmdEx("save resume") // 恢复存档写入
-            clearInterval(check_copy) // 退出循环函数
-        }
-    }, 100)
-    // #endregion
-
-
-    // NOTE: 检查是否压缩成功
-    // #region 检查是否压缩成功
-    let check_compress = setInterval(() => {
-        if (compress_return == 0) {
-            logger.log(i18n.get("backup_check_compress_success") + pluginConfig.get("BackupFolderPath") + `/${archive_name}`)
-
-            // 全体广播备份情况
-            // type可选数字: 0-普通消息(Raw), 1-聊天消息(Chat) 5-物品栏上方的消息(Tip)
-            if (broadcast_status) {
-                mc.broadcast(i18n.get('backup_broadcast_check_compress_success'), 0)
-                mc.broadcast(i18n.get('backup_broadcast_check_compress_success'), 5)
-
-                // 通知全体玩家(类似于成就获得提示)
-                Notice_Upper(broadcast_Backup_success_Title, broadcast_Backup_success_Message)
-            }
-            // 提醒使用该指令玩家
-            if (yes_no_console == 0) {
-                pl.tell(i18n.get("backup_check_compress_success") + pluginConfig.get("BackupFolderPath") + `/${archive_name}`)
-            }
+        // NOTE: 检测tmp文件夹是否存在，清空tmp文件夹
+        if (File.exists(backup_tmp_path)) {
             File.delete(backup_tmp_path)
-
-
-            // 开始清除冗余备份
-            // 获取配置文件中Auto_Clean配置内容
-            auto_cleaup = pluginConfig.get('Auto_Clean')
-            // 读取"Use_Number_Detection"
-            use_number_detection = auto_cleaup['Use_Number_Detection']
-
-            // 读取"Use_Number_Detection"中的Mode模式
-            use_number_detection_mode = use_number_detection['Mode']
-            switch (use_number_detection_mode) {
-                case 1: // 在备份后清理
-                    Clean_Backup_Files()
-                    break;
-
-                case 2: // 在开服时，备份时清理
-                    Clean_Backup_Files()
-                    break;
-                default:
-                    break;
-            }
-
-            clearInterval(check_compress) // 退出循环函数
-        } else if (compress_return == 1) {
-            logger.log(i18n.get("backup_check_compress_wrong"))
-
-            // 全体广播备份情况
-            // type可选数字: 0-普通消息(Raw), 1-聊天消息(Chat) 5-物品栏上方的消息(Tip)
-            if (broadcast_status) {
-                mc.broadcast(i18n.get('backup_broadcast_check_compress_wrong'), 0)
-                mc.broadcast(i18n.get('backup_broadcast_check_compress_wrong'), 5)
-
-                // 通知全体玩家(类似于成就获得提示)
-                Notice_Upper(broadcast_Backup_wrong_Title, broadcast_Backup_wrong_Message)
-            }
-            // 提醒使用该指令玩家
-            if (yes_no_console == 0) {
-                pl.tell(i18n.get("backup_check_compress_wrong"))
-            }
-
-            File.delete(backup_tmp_path)
-            clearInterval(check_compress) // 退出循环函数
+            File.mkdir(backup_tmp_path)
+        } else {
+            File.mkdir(backup_tmp_path)
         }
-    }, 100)
+
+        // NOTE: 复制文件(备份存档)
+        // #region 复制文件(备份存档)
+        for (let i = 0; i < world_folder_list.length; i++) {
+            let currentPath = world_folder_path + world_folder_list[i]
+
+            // 调试信息(在配置文件中Debug_MoreLogs开启)
+            if (Debug_Morelogs) {
+                logger.log('[Debug]' + i18n.get("backup_processing") + `${world_folder_list[i]} --> ${currentPath}`)
+            }
+            // 调试信息(在配置文件中Debug_MoreLogs_Player开启)
+            if (Debug_Morelogs_Player) {
+                // 提醒使用该指令玩家
+                if (yes_no_console == 0) {
+                    pl.tell('[Debug]' + i18n.get("backup_processing") + `${world_folder_list[i]} --> ${currentPath}`)
+                }
+            }
+
+            // 检查是否为目录
+            if (File.checkIsDir(currentPath)) {
+                // 创建备份目录
+                let backupDirPath = backup_tmp_path + world_folder_list[i]
+                File.mkdir(backupDirPath)
+
+                // 递归复制子目录
+                copy_return = copyDirectory(currentPath, backupDirPath, pl)
+            } else {
+                // 如果是文件，直接复制
+                File.copy(currentPath, backup_tmp_path)
+            }
+        }
+        // #endregion
+
+
+        // NOTE: 截取文件
+        // #region 截取文件
+        let messageLines = messages.split("\n")
+        let filePaths = messageLines[1].split(", ") // 去掉多余的日志之后的内容
+        // fastLog(filePaths)
+
+        new JsonConfigFile(
+            backup_tmp_path + "file_paths_tmp.json",
+            JSON.stringify(filePaths)
+        )
+
+        // NOTE: 创建日志文件夹
+        if (!File.exists("./logs/EasyBackuper/")) {
+            File.mkdir("./logs/EasyBackuper/")
+        }
+
+        // 调用 mhlove-truncate.exe 截取文件
+        system.newProcess(`cmd /c ${pluginConfig.get("exe_mhlove_truncate_path")} ${backup_tmp_path + "file_paths_tmp.json"} ${backup_tmp_path} > ./logs/EasyBackuper/mh.log`, (exitcode, output) => {
+            if (exitcode === 0) {
+                logger.info(i18n.get("backup_truncate_success"))
+                File.delete(backup_tmp_path + "file_paths_tmp.json")
+            } else {
+                logger.error(i18n.get("backup_truncate_wrong"))
+                File.delete(backup_tmp_path + "file_paths_tmp.json")
+            }
+        })
+        // return true
+
+        // #endregion
+
+
+        // NOTE: 获取当前时间
+        function padZero(num) {
+            return num.toString().padStart(2, '0');
+        }
+
+        let timeObj = system.getTimeObj();
+        let archive_name = timeObj.Y + '_' +
+            padZero(timeObj.M) + '_' +
+            padZero(timeObj.D) + '=' +
+            padZero(timeObj.h) + '-' +
+            padZero(timeObj.m) + '-' +
+            padZero(timeObj.s) + `[${world_level_name}].zip`;
+
+        // NOTE: 压缩存档(tmp文件夹)
+        // #region 压缩存档(tmp文件夹)
+        setTimeout(() => {
+            system.newProcess(pluginConfig.get("exe_7z_path") + ' a -tzip ' + '"' + pluginConfig.get("BackupFolderPath") + `/${archive_name}` + '"' + ` ${backup_tmp_path}/`, (exit, out) => {
+                logger.log(i18n.get("backup_check_compressing")) // 提示信息
+
+                // 提醒使用该指令玩家
+                if (yes_no_console == 0) {
+                    pl.tell(i18n.get("backup_check_compressing"))
+                }
+
+                // 调试信息(在配置文件中Debug_MoreLogs开启)
+                if (Debug_Morelogs) {
+                    log('[Debug]' + exit, '\n', out)
+                }
+                // 调试信息(在配置文件中Debug_MoreLogs_Player开启)
+                if (Debug_Morelogs_Player) {
+                    // 提醒使用该指令玩家
+                    if (yes_no_console == 0) {
+                        pl.tell('[Debug]' + exit + '\n' + out)
+                    }
+                }
+
+                compress_return = exit
+            })
+        }, 2000)
+        // #endregion
+
+
+        // NOTE: 检查是否拷贝成功
+        // #region 检查是否拷贝成功
+        let check_copy = setInterval(() => {
+            if (copy_return) { // 感觉没必要判断复制成功或失败，一般情况都是可以复制成功的
+                logger.log(i18n.get("backup_check_copy_success"))
+
+                // 全体广播备份情况
+                // type可选数字: 0-普通消息(Raw), 1-聊天消息(Chat) 5-物品栏上方的消息(Tip)
+                if (broadcast_status) {
+                    mc.broadcast(i18n.get('backup_broadcast_check_copy_success'), 0)
+                    mc.broadcast(i18n.get('backup_broadcast_check_copy_success'), 5)
+                }
+                // 提醒使用该指令玩家
+                if (yes_no_console == 0) {
+                    pl.tell(i18n.get("backup_check_copy_success"))
+                }
+
+                mc.runcmd("save resume") // 恢复存档写入
+                clearInterval(check_copy) // 退出循环函数
+            } else {
+                logger.log(i18n.get("backup_check_copy_wrong"))
+
+                // 全体广播备份情况
+                // type可选数字: 0-普通消息(Raw), 1-聊天消息(Chat) 5-物品栏上方的消息(Tip)
+                if (broadcast_status) {
+                    mc.broadcast(i18n.get('backup_broadcast_check_copy_wrong'), 0)
+                    mc.broadcast(i18n.get('backup_broadcast_check_copy_wrong'), 5)
+                }
+                // 提醒使用该指令玩家
+                if (yes_no_console == 0) {
+                    pl.tell(i18n.get("backup_check_copy_wrong"))
+                }
+
+                mc.runcmd("save resume") // 恢复存档写入
+                clearInterval(check_copy) // 退出循环函数
+            }
+        }, 200)
+        // #endregion
+
+        // NOTE: 检查是否压缩成功
+        let check_compress = setInterval(() => {
+            if (compress_return == 0) {
+                let archivePath = pluginConfig.get("BackupFolderPath") + `/${archive_name}`
+
+                // 使用 cmd 获取压缩包大小
+                system.newProcess(`cmd /c for %I in ("${archivePath}") do @echo %~zI`, (exit, out) => {
+                    if (exit === 0) {
+                        let archiveSize = parseInt(out.trim(), 10) // 获取压缩包大小
+                        let archiveSizeMB = (archiveSize / (1024 * 1024)).toFixed(2) // 转换为MB并保留两位小数
+
+                        logger.log(i18n.get("backup_check_compress_success") + archivePath + ` (${archiveSizeMB} MB)`)
+
+                        // 全体广播备份情况
+                        // type可选数字: 0-普通消息(Raw), 1-聊天消息(Chat) 5-物品栏上方的消息(Tip)
+                        if (broadcast_status) {
+                            mc.broadcast(i18n.get('backup_broadcast_check_compress_success') + `${archive_name} (${archiveSizeMB} MB)`, 0)
+                            mc.broadcast(i18n.get('backup_broadcast_check_compress_success') + `${archive_name} (${archiveSizeMB} MB)`, 5)
+
+                            // 通知全体玩家(类似于成就获得提示)
+                            Notice_Upper(broadcast_Backup_success_Title, broadcast_Backup_success_Message)
+                        }
+                        // 提醒使用该指令玩家
+                        if (yes_no_console == 0) {
+                            pl.tell(i18n.get("backup_check_compress_success") + archivePath + ` (${archiveSizeMB} MB)`)
+                        }
+                        File.delete(backup_tmp_path)
+
+                        // 开始清除冗余备份
+                        auto_cleaup = pluginConfig.get('Auto_Clean')
+                        use_number_detection = auto_cleaup['Use_Number_Detection']
+                        use_number_detection_mode = use_number_detection['Mode']
+                        switch (use_number_detection_mode) {
+                            case 1: // 在备份后清理
+                                Clean_Backup_Files()
+                                break;
+
+                            case 2: // 在开服时，备份时清理
+                                Clean_Backup_Files()
+                                break;
+                            default:
+                                break;
+                        }
+
+                        clearInterval(check_compress) // 退出循环函数
+                    } else {
+                        logger.log(i18n.get("backup_check_compress_wrong"))
+
+                        // 全体广播备份情况
+                        // type可选数字: 0-普通消息(Raw), 1-聊天消息(Chat) 5-物品栏上方的消息(Tip)
+                        if (broadcast_status) {
+                            mc.broadcast(i18n.get('backup_broadcast_check_compress_wrong'), 0)
+                            mc.broadcast(i18n.get('backup_broadcast_check_compress_wrong'), 5)
+
+                            // 通知全体玩家(类似于成就获得提示)
+                            Notice_Upper(broadcast_Backup_wrong_Title, broadcast_Backup_wrong_Message)
+                        }
+                        // 提醒使用该指令玩家
+                        if (yes_no_console == 0) {
+                            pl.tell(i18n.get("backup_check_compress_wrong"))
+                        }
+
+                        File.delete(backup_tmp_path)
+                        clearInterval(check_compress) // 退出循环函数
+                    }
+                })
+            } else if (compress_return == 1) {
+                logger.log(i18n.get("backup_check_compress_wrong"))
+
+                // 全体广播备份情况
+                // type可选数字: 0-普通消息(Raw), 1-聊天消息(Chat) 5-物品栏上方的消息(Tip)
+                if (broadcast_status) {
+                    mc.broadcast(i18n.get('backup_broadcast_check_compress_wrong'), 0)
+                    mc.broadcast(i18n.get('backup_broadcast_check_compress_wrong'), 5)
+
+                    // 通知全体玩家(类似于成就获得提示)
+                    Notice_Upper(broadcast_Backup_wrong_Title, broadcast_Backup_wrong_Message)
+                }
+                // 提醒使用该指令玩家
+                if (yes_no_console == 0) {
+                    pl.tell(i18n.get("backup_check_compress_wrong"))
+                }
+
+                File.delete(backup_tmp_path)
+                clearInterval(check_compress) // 退出循环函数
+            }
+        }, 200)
+        // #endregion
+
+
+
+
+        return false
+    }
     // #endregion
+    setTimeout(() => {
+        save_query()
+    }, 1000);
 }
 // #endregion
 
@@ -982,9 +1135,6 @@ function Loadplugin() {
     })
 }
 // #endregion
-
-
-
 
 // 加载插件
 Loadplugin()
