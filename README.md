@@ -70,7 +70,7 @@ LSE-EasyBackuper 是一个专为 LeviLamina 服务器设计的备份插件，旨
 
 1. **下载插件**
    - 从 [Release页面](https://github.com/MengHanLOVE1027/lse-easybackuper/releases) 下载最新版本
-   - 或从 [MineBBS](https://www.minebbs.com/resources/easybackuper-eb.7771/) 获取
+   - 或从 [MineBBS](https://www.minebbs.com/resources/easybackuper-eb-minecraft.7771/) 获取
 
 2. **安装插件**
    ```bash
@@ -82,7 +82,7 @@ LSE-EasyBackuper 是一个专为 LeviLamina 服务器设计的备份插件，旨
    ```
 
 3. **安装依赖文件**
-   - 将 `7za.exe`、`mhlove-truncate.exe` 放入 `plugins/lse-easybackuper/` 目录 (mhlove-truncate.exe 可从 [Release页面](https://github.com/MengHanLOVE1027/lse-easybackuper/releases) 或者 [MineBBS](https://www.minebbs.com/resources/easybackuper-eb.7771/) 下载的压缩包中获取)
+   - 将 `7za.exe`、`mhlove-truncate.exe` 放入 `plugins/lse-easybackuper/` 目录 (mhlove-truncate.exe 可从 [Release页面](https://github.com/MengHanLOVE1027/lse-easybackuper/releases) 或者 [MineBBS](https://www.minebbs.com/resources/easybackuper-eb-minecraft.7771/) 下载的压缩包中获取)
 
 4. **启动服务器**
    - 重启服务器或使用 `/ll reload EasyBackuper` 命令
@@ -308,7 +308,7 @@ LSE-EasyBackuper 是一个专为 LeviLamina 服务器设计的备份插件，旨
 ## 🌟 支持与反馈
 
 - **GitHub Issues**: [提交问题](https://github.com/MengHanLOVE1027/lse-easybackuper/issues)
-- **MineBBS**: [讨论帖](https://www.minebbs.com/resources/easybackuper-eb.7771/)
+- **MineBBS**: [讨论帖](https://www.minebbs.com/resources/easybackuper-eb-minecraft.7771/)
 - **作者**: 梦涵LOVE
 
 ---

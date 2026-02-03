@@ -70,7 +70,7 @@ Server Root/
 
 1. **Download Plugin**
    - Download the latest version from [Release Page](https://github.com/MengHanLOVE1027/lse-easybackuper/releases)
-   - Or get it from [MineBBS](https://www.minebbs.com/resources/easybackuper-eb.7771/)
+   - Or get it from [MineBBS](https://www.minebbs.com/resources/easybackuper-eb-minecraft.7771/)
 
 2. **Install Plugin**
    ```bash
@@ -82,7 +82,7 @@ Server Root/
    ```
 
 3. **Install Dependencies**
-   - Place `7za.exe`, `mhlove-truncate.exe` in the `plugins/lse-easybackuper/` directory (mhlove-truncate.exe can be obtained from the [Release Page](https://github.com/MengHanLOVE1027/lse-easybackuper/releases) or [MineBBS](https://www.minebbs.com/resources/easybackuper-eb.7771/))
+   - Place `7za.exe`, `mhlove-truncate.exe` in the `plugins/lse-easybackuper/` directory (mhlove-truncate.exe can be obtained from the [Release Page](https://github.com/MengHanLOVE1027/lse-easybackuper/releases) or [MineBBS](https://www.minebbs.com/resources/easybackuper-eb-minecraft.7771/))
 
 4. **Start Server**
    - Restart the server or use `/ll reload EasyBackuper` command
@@ -308,7 +308,7 @@ Issues and Pull Requests are welcome!
 ## 🌟 Support & Feedback
 
 - **GitHub Issues**: [Submit Issue](https://github.com/MengHanLOVE1027/lse-easybackuper/issues)
-- **MineBBS**: [Discussion Thread](https://www.minebbs.com/resources/easybackuper-eb.7771/)
+- **MineBBS**: [Discussion Thread](https://www.minebbs.com/resources/easybackuper-eb-minecraft.7771/)
 - **Author**: 梦涵LOVE
 
 ---
