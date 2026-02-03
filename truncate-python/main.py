@@ -1,4 +1,10 @@
 import os, sys, json, re
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# 设置控制台输出编码为 UTF-8
+if sys.platform == "win32":
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 
 # 截取文件
@@ -53,6 +59,36 @@ def truncate_file(file_path, position):
         return False  # 截取失败
 
 
+# 使用多线程截取文件
+def truncate_files_multithread(file_paths, backup_tmp_path, max_workers=4):
+    """
+    使用多线程截取多个文件
+    """
+    # 准备截取任务
+    truncate_tasks = []
+    for path in file_paths:
+        file_name, position = path.split(":")
+        position = int(position)
+        # 使用正则表达式去掉第一个 "/" 及其前面的内容
+        cleaned_file_name = re.sub(r"^[^/]+/", "", file_name)
+        real_file_name = os.path.join(backup_tmp_path, cleaned_file_name)
+        truncate_tasks.append((real_file_name, position))
+    
+    # 使用线程池并行截取文件
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # 提交所有截取任务
+        futures = {executor.submit(truncate_file, file_path, position): (file_path, position) 
+                  for file_path, position in truncate_tasks}
+        
+        # 等待所有任务完成
+        for future in as_completed(futures):
+            file_path, position = futures[future]
+            try:
+                future.result()
+            except Exception as e:
+                print(f"截取文件 {file_path} 时发生异常: {e}")
+
+
 if __name__ == "__main__":
     try:
         file_paths_tmp = sys.argv[1]
@@ -62,17 +98,8 @@ if __name__ == "__main__":
         with open(file_paths_tmp, "r") as f:
             file_paths = json.load(f)
 
-        for path in file_paths:
-            file_name, position = path.split(":")
-            position = int(position)
-            # print(file_name, position)
-
-            # 使用正则表达式去掉第一个 "/" 及其前面的内容
-            cleaned_file_name = re.sub(r"^[^/]+/", "", file_name)
-            real_file_name = os.path.join(backup_tmp_path, cleaned_file_name)
-            # print(real_file_name)
-
-            truncate_file(real_file_name, position)
+        # 使用多线程截取文件
+        truncate_files_multithread(file_paths, backup_tmp_path, max_workers=4)
     except:
         """
         # 退出程序引发SystemExit异常, 可以捕获异常执行些清理工作. n默认值为0, 表示正常退出.
