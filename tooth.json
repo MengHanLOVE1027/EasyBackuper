@@ -1,27 +1,54 @@
 {
-    "format_version": 2,
+    "format_version": 3,
+    "format_uuid": "289f771f-2c9a-4d73-9f3f-8492495a924d",
     "tooth": "github.com/MengHanLOVE1027/lse-easybackuper",
     "version": "0.4.3",
     "info": {
         "name": "EasyBackuper",
         "description": "一个基于 LSE引擎 的轻量级、高性能、功能全面的Minecraft服务器热备份插件 / A lightweight, high-performance, and feature-rich hot backup plugin for Minecraft servers based on LSE.",
-        "author": "MengHanLOVE1027",
         "tags": [
-            "levilamina",
-            "lse",
             "plugin",
             "backup",
-            "ezbackuper",
-            "easybackuper"
-        ]
+            "easyplugin",
+            "easybackuper",
+            "lse",
+            "type:mod",
+            "platform:levilamina"
+        ],
+        "avatar_url": "https://zh.minecraft.wiki/images/Chiseled_Bookshelf_%28stage_6%29_%28S%29_JE1.png?bbb31"
     },
-    "asset_url": "https://github.com/MengHanLOVE1027/lse-easybackuper/releases/download/v0.4.3/EasyBackuper-v0.4.3.zip",
-    "files": {
-        "place": [
-            {
-                "src": "EasyBackuper/*",
-                "dest": "plugins/EasyBackuper/"
+    "variants": [
+        {
+            "label": "",
+            "platform": "win-x64",
+            "dependencies": {},
+            "assets": [
+                {
+                    "type": "zip",
+                    "urls": [
+                        "https://{{tooth}}/releases/download/v{{version}}/EasyBackuper-v{{version}}.zip"
+                    ],
+                    "placements": [
+                        {
+                            "type": "dir",
+                            "src": "EasyBackuper/*",
+                            "dest": "plugins/EasyBackuper/"
+                        }
+                    ]
+                }
+            ],
+            "preserve_files": [],
+            "remove_files": [],
+            "scripts": {
+                "pre_install": [],
+                "install": [],
+                "post_install": [],
+                "pre_pack": [],
+                "post_pack": [],
+                "pre_uninstall": [],
+                "uninstall": [],
+                "post_uninstall": []
             }
-        ]
-    }
+        }
+    ]
 }
