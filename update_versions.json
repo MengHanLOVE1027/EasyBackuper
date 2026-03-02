@@ -2,7 +2,7 @@
     "latest_version": "0.4.4",
     "versions": {
         "0.4.4": {
-            "download_url": "https://github.com/MengHanLOVE1027/lse-easybackuper/releases/download/v0.4.3/EasyBackuper-v0.4.3.zip",
+            "download_url": "https://github.com/MengHanLOVE1027/lse-easybackuper/releases/download/v0.4.4/EasyBackuper-v0.4.4.zip",
             "update_content": "更新版本号为 v0.4.4，适配了 EasyCheckUpdate 插件，修复了部分 bug，支持BStats统计和多彩日志输出，不再支持多语言（太臃肿了）",
             "author": "梦涵LOVE",
             "update_time": "2026-03-02 22:32:00"
