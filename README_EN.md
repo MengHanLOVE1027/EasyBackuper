@@ -1,9 +1,6 @@
 <div align="center">
 
 ![LSE-EasyBackuper](https://socialify.git.ci/MengHanLOVE1027/lse-easybackuper/image?custom_language=JavaScript&description=1&font=Inter&forks=1&issues=1&language=1&logo=https://zh.minecraft.wiki/images/Chiseled_Bookshelf_%28stage_6%29_%28S%29_JE1.png?bbb31&name=1&owner=1&pattern=Plus&pulls=1&stargazers=1&theme=Auto)
-  <!-- <a href="https://github.com/MengHanLOVE1027/lse-easybackuper/releases">
-    <img src="https://avatars.githubusercontent.com/u/99132833?v=4" alt="Logo" width="128" height="128">
-  </a> -->
 <h3>LSE-EasyBackuper</h3>
 
 <p>
@@ -92,7 +89,7 @@ Server Root/
 
 ## ⚙️ Configuration Details
 
-Configuration file location: `plugins/lse-easybackuper/config/EasyBackuper.json`
+Configuration file location: `plugins/EasyBackuper/config/EasyBackuper.json`
 
 ### 📋 Main Configuration Items
 
@@ -124,8 +121,12 @@ Configuration file location: `plugins/lse-easybackuper/config/EasyBackuper.json`
     }
   },
 
+  // 📁 Executable File Paths
+  "exe_7z_path": ".\\plugins\\EasyBackuper\\7za.exe",  // 7z compression tool path
+  "exe_mhlove_truncate_path": ".\\plugins\\EasyBackuper\\mhlove-truncate.exe",  // Truncate tool path
+
   // 📁 Storage Path
-  "BackupFolderPath": "./backup",  // Backup file storage path
+  "BackupFolderPath": "./backup/",  // Backup file storage path
 
   // ⚡ Performance Configuration
   "Max_Workers": 4,  // Number of concurrent threads
@@ -166,7 +167,14 @@ Configuration file location: `plugins/lse-easybackuper/config/EasyBackuper.json`
 
   // 🔄 Restore Configuration
   "Restore": {
-    "backup_old_world_before_restore": true,  // Backup current world before restore
+    "backup_old_world_before_restore": true  // Backup current world before restore
+  },
+
+  // 📊 Data Statistics
+  "Bstats": {
+    "EnableModule": true,  // Enable BStats data statistics
+    "logSentData": false,  // Log sent data
+    "serverUUID": ""       // Server unique identifier (auto-generated)
   }
 }
 ```

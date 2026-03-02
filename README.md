@@ -1,9 +1,6 @@
 <div align="center">
 
 ![LSE-EasyBackuper](https://socialify.git.ci/MengHanLOVE1027/lse-easybackuper/image?custom_language=JavaScript&description=1&font=Inter&forks=1&issues=1&language=1&logo=https://zh.minecraft.wiki/images/Chiseled_Bookshelf_%28stage_6%29_%28S%29_JE1.png?bbb31&name=1&owner=1&pattern=Plus&pulls=1&stargazers=1&theme=Auto)
-  <!-- <a href="https://github.com/MengHanLOVE1027/lse-easybackuper/releases">
-    <img src="https://avatars.githubusercontent.com/u/99132833?v=4" alt="Logo" width="128" height="128">
-  </a> -->
 <h3>LSE-EasyBackuper</h3>
 
 <p>
@@ -24,7 +21,7 @@ Powered by LeviLamina.<br>
 
 ## 📖 简介
 
-LSE-EasyBackuper 是一个专为 LeviLamina 服务器设计的备份插件，旨在简化备份过程，提高备份效率，并确保数据安全。它支持自动定时备份、智能清理、实时通知、多线程加速、多格式支持、备份恢复和多语言等功能，为服务器管理员提供全面的数据保护解决方案。
+LSE-EasyBackuper 是一个专为 LeviLamina 服务器设计的备份插件，旨在简化备份过程，提高备份效率，并确保数据安全。它支持自动定时备份、智能清理、实时通知、多线程加速、多格式支持、备份恢复等功能，为服务器管理员提供全面的数据保护解决方案。
 
 ---
 
@@ -38,7 +35,6 @@ LSE-EasyBackuper 是一个专为 LeviLamina 服务器设计的备份插件，旨
 | ⚡**多线程加速**   | 并行文件处理，大幅提升备份速度    |
 | 🗜️**多格式支持**   | 支持 7z、zip、tar.gz 多种压缩格式 |
 | 🔄**备份恢复**     | 一键恢复备份，支持自动重启        |
-| 🌍**多语言界面**   | 支持中文、英文等多语言显示        |
 | 📝**完整日志系统** | 彩色日志输出，按日期分割存储      |
 
 ---
@@ -54,11 +50,8 @@ LSE-EasyBackuper 是一个专为 LeviLamina 服务器设计的备份插件，旨
 │   └── EasyBackuper/                    # 插件资源目录
 │       ├── 7za.exe                      # 7z压缩工具
 │       ├── EasyBackuper.js              # 插件主文件
-│       ├── config/
-│       │   └── EasyBackuper.json        # 配置文件
-│       └── langs/                       # 多语言文件
-│           ├── zh_CN.json               # 简体中文
-│           └── en_US.json               # 英文
+│       └── config/
+│           └── EasyBackuper.json        # 配置文件
 └── backup/                              # 备份文件存储目录
 ```
 
@@ -92,15 +85,12 @@ LSE-EasyBackuper 是一个专为 LeviLamina 服务器设计的备份插件，旨
 
 ## ⚙️ 配置详解
 
-配置文件位于：`plugins/lse-easybackuper/config/EasyBackuper.json`
+配置文件位于：`plugins/EasyBackuper/config/EasyBackuper.json`
 
 ### 📋 主要配置项
 
 ```json
 {
-  // 🌐 国际化设置
-  "Language": "zh_CN",  // 可选: zh_CN, en_US
-  
   // 🗜️ 压缩配置
   "Compression": {
     "method": "zip",  // 压缩算法: 7z, zip, tar
@@ -124,8 +114,12 @@ LSE-EasyBackuper 是一个专为 LeviLamina 服务器设计的备份插件，旨
     }
   },
   
+  // 📁 可执行文件路径
+  "exe_7z_path": ".\\plugins\\EasyBackuper\\7za.exe",  // 7z压缩工具路径
+  "exe_mhlove_truncate_path": ".\\plugins\\EasyBackuper\\mhlove-truncate.exe",  // 截断工具路径
+
   // 📁 存储路径
-  "BackupFolderPath": "./backup",  // 备份文件保存路径
+  "BackupFolderPath": "./backup/",  // 备份文件保存路径
   
   // ⚡ 性能配置
   "Max_Workers": 4,  // 并发线程数
@@ -166,7 +160,14 @@ LSE-EasyBackuper 是一个专为 LeviLamina 服务器设计的备份插件，旨
 
   // 🔄 恢复配置
   "Restore": {
-    "backup_old_world_before_restore": true,  // 恢复前备份当前世界
+    "backup_old_world_before_restore": true  // 恢复前备份当前世界
+  },
+
+  // 📊 数据统计
+  "Bstats": {
+    "EnableModule": true,  // 启用BStats数据统计
+    "logSentData": false,  // 记录发送的数据
+    "serverUUID": ""       // 服务器唯一标识符（自动生成）
   }
 }
 ```

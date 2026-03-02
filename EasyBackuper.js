@@ -1,17 +1,247 @@
 // LiteLoader-AIDS automatic generated
 /// <reference path="c:\Users\HeYuHan\.LiteDev/dts/helperlib/src/index.d.ts"/>
 
+// TAG: BStats模块 - By Nico6719
+// #region BStats模块 - By Nico6719
+/**
+ * EasyBackuper - bStats 遥测模块
+ */
+function bstatsRandomGradientLog(text) {
+    const len = text.length;
+    let out = '';
+    for (let i = 0; i < len; i++) {
+        const t = len <= 1 ? 0 : i / (len - 1);
+        const [r, g, b] = globalLerpColor(t);
+        out += `\x1b[38;2;${r};${g};${b}m` + text[i];
+    }
+    logger.log(out + '\x1b[0m');
+}
+
+class BStatsImpl {
+    constructor(pluginId) {
+        this.pluginId = pluginId;
+        this.enabled = true;
+        this.debugMode = false;
+        this.pluginName = plugin_name;
+        this.pluginVersion = plugin_version;
+
+        // 初始设为空，方便观察是否获取成功
+        this.cachedCoreCount = "Unknown";
+        this.cachedOsName = "Unknown";
+        this.cachedOsArch = "Unknown";
+        this.cachedOsVersion = "Unknown";
+
+        this.platform = "bukkit"; // 保持为 "bukkit" 以便 bstats.org 接受
+        this.baseUrl = `https://bstats.org/api/v2/data/${this.platform}`;
+
+        // 立即同步一次配置并探测系统信息
+        this.syncConfig();
+        this.probeSystemInfo();
+    }
+
+    /**
+     * 从 server.properties 文件中读取 online-mode 设置
+     * @returns {number} 1 表示 true (在线模式), 0 表示 false (离线模式)
+     */
+    readServerProperties() {
+        const path = './server.properties';
+        try {
+            if (File.exists(path)) {
+                const content = File.readFrom(path);
+                const match = content.match(/^online-mode\s*=\s*(true|false)/m);
+                if (match) {
+                    const value = match[1];
+                    if (this.debugMode) bstatsRandomGradientLog(`从 server.properties 读取到 online-mode: ${value}`);
+                    return value === 'true' ? 1 : 0;
+                }
+            }
+            if (this.debugMode) logger.warn("server.properties 中未找到 'online-mode'，将使用默认值 1。");
+        } catch (e) {
+            if (this.debugMode) logger.error(`读取 server.properties 失败: ${e.message}，将使用默认值 1。`);
+        }
+        // 默认返回 1 (在线模式)
+        return 1;
+    }
+
+    syncConfig() {
+        try {
+            // 从bstats/config.json读取配置
+            const bstatsConfigPath = plugin_path + "/bstats/config.json";
+            let bstatsConfig = {};
+            if (File.exists(bstatsConfigPath)) {
+                try {
+                    const configContent = File.readFrom(bstatsConfigPath);
+                    bstatsConfig = JSON.parse(configContent);
+                } catch (e) {
+                    logger.error("读取bstats配置文件失败: " + e.message);
+                }
+            }
+
+            // 从插件配置中读取BStats配置
+            const bstatsConf = pluginConfig.get("Bstats") || {};
+            this.enabled = bstatsConfig.enabled !== undefined ? bstatsConfig.enabled : (bstatsConf.EnableModule !== undefined ? bstatsConf.EnableModule : true);
+            this.debugMode = bstatsConfig.logSentDataEnabled !== undefined ? bstatsConfig.logSentDataEnabled : (bstatsConf.logSentData !== undefined ? bstatsConf.logSentData : false);
+            this.serverUUID = bstatsConfig.serverUUID || bstatsConf.serverUUID || this.generateUUID();
+
+            // 如果配置中没有UUID，保存新生成的UUID
+            if (!bstatsConfig.serverUUID && !bstatsConf.serverUUID) {
+                const updatedBstatsConf = pluginConfig.get("Bstats") || {};
+                updatedBstatsConf.serverUUID = this.serverUUID;
+                pluginConfig.set("Bstats", updatedBstatsConf);
+            }
+        } catch (e) {
+            logger.error("同步BStats配置失败: " + e.message);
+            // 使用默认UUID
+            this.serverUUID = this.generateUUID();
+        }
+    }
+
+    // 深度探测系统信息
+    probeSystemInfo() {
+        // 1. 尝试通过 process 对象获取
+        try {
+            if (typeof process !== 'undefined') {
+                this.cachedOsName = process.platform || this.cachedOsName;
+                this.cachedOsArch = process.arch || this.cachedOsArch;
+            }
+        } catch (e) { }
+
+        // 2. 尝试通过异步命令预加载
+        const updateVal = (cmd, prop) => {
+            try {
+                system.cmd(cmd, (exit, out) => {
+                    if (exit === 0 && out) this[prop] = out.trim();
+                });
+            } catch (e) { }
+        };
+
+        updateVal("nproc", "cachedCoreCount");
+        updateVal("uname -s", "cachedOsName");
+        updateVal("uname -m", "cachedOsArch");
+        updateVal("uname -r", "cachedOsVersion");
+
+        // 3. 针对 Windows 的特殊探测
+        if (this.cachedOsName === "Unknown") {
+            updateVal("echo %NUMBER_OF_PROCESSORS%", "cachedCoreCount");
+            updateVal("echo %OS%", "cachedOsName");
+            updateVal("echo %PROCESSOR_ARCHITECTURE%", "cachedOsArch");
+        }
+    }
+
+    generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    collectData() {
+        // 每次收集数据时都重新同步配置，确保 UUID 等信息是最新的
+        this.syncConfig();
+
+        let playerCount = 0;
+        try { playerCount = mc.getOnlinePlayers().length; } catch (e) { }
+
+        // 获取LSE版本
+        const lseVerRaw = (typeof ll !== 'undefined') ? ll.versionString() : "Unknown";
+        const pureLseVersion = lseVerRaw.replace("LSE-QuickJS ", "").split(" ")[0];
+
+        // 获取Minecraft版本
+        let mcVer = (typeof mc !== 'undefined' ? mc.getBDSVersion() : "1.21.0");
+        if (mcVer.startsWith('v')) mcVer = mcVer.substring(1);
+
+        // 获取压缩方法
+        const compression = pluginConfig.get("Compression");
+        const compressionMethod = compression && compression.method ? compression.method : "unknown";
+
+        // 获取自动备份状态
+        const autoBackupStatus = scheduled_tasks_status ? "Enabled" : "Disabled";
+
+        // 获取自动清理状态
+        const autoCleanStatus = use_number_detection_status ? "Enabled" : "Disabled";
+
+        // 最终兜底：如果探测失败，至少给一个看起来真实的占位符
+        const finalOsName = this.cachedOsName !== "Unknown" ? this.cachedOsName : "Windows";
+        const finalOsArch = this.cachedOsArch !== "Unknown" ? this.cachedOsArch : "x86_64";
+        const finalCoreCount = this.cachedCoreCount !== "Unknown" ? this.cachedCoreCount : "8";
+        const finalOsVersion = this.cachedOsVersion !== "Unknown" ? this.cachedOsVersion : "10.0";
+
+        return {
+            "serverUUID": this.serverUUID,
+            "metricsVersion": "2",
+            "playerAmount": playerCount,
+            "onlineMode": this.readServerProperties(),
+            "bukkitVersion": mcVer,
+            "javaVersion": "N/A (Bedrock)",
+            "osName": finalOsName,
+            "osArch": finalOsArch,
+            "osVersion": finalOsVersion,
+            "coreCount": parseInt(finalCoreCount) || 8,
+            "service": {
+                "id": this.pluginId,
+                "pluginVersion": this.pluginVersion,
+                "customCharts": [
+                    { "chartId": "lse_version", "type": "simple_pie", "data": { "value": pureLseVersion } },
+                    { "chartId": "compression_method", "type": "simple_pie", "data": { "value": compressionMethod } },
+                    { "chartId": "auto_backup_status", "type": "simple_pie", "data": { "value": autoBackupStatus } },
+                    { "chartId": "auto_clean_status", "type": "simple_pie", "data": { "value": autoCleanStatus } }
+                ]
+            }
+        };
+    }
+
+    submit() {
+        if (!this.enabled) {
+            bstatsRandomGradientLog("遥测模块已禁用，跳过上报。");
+            return;
+        }
+        const payload = this.collectData();
+        if (this.debugMode) {
+            bstatsRandomGradientLog("准备上报数据包内容:");
+            bstatsRandomGradientLog(JSON.stringify(payload, null, 2));
+        }
+        try {
+            network.httpPost(this.baseUrl, JSON.stringify(payload), "application/json", (status, result) => {
+                if (status === 200) {
+                    bstatsRandomGradientLog("遥测数据上报成功。");
+                } else {
+                    logger.warn(`上报失败，状态码: ${status}, 返回结果: ${result}`);
+                }
+            });
+        } catch (e) {
+            if (this.debugMode) {
+                logger.error("网络请求异常: " + e.message);
+            }
+        }
+    }
+
+    start() {
+        // 延长到 10 秒，给异步命令足够的时间返回结果
+        setTimeout(() => this.submit(), 10 * 1000);
+        setInterval(() => this.submit(), 30 * 60 * 1000);
+        setTimeout(() => {
+            bstatsRandomGradientLog(`${this.pluginName}遥测模块已启动。首次数据将在 10 秒后发送。`);
+        }, 2000)
+    }
+}
+// #endregion
+
 // TAG: 全局常量模块
 // #region 全局常量模块
 // 声明常量
 const plugin_name = "EasyBackuper",
-    plugin_version = "v0.4.3",
+    plugin_name_smallest = "easybackuper",
+    plugin_version = "v0.4.4",
+    plugin_description = "一个基于 LSE引擎 的轻量级、高性能、功能全面的Minecraft服务器热备份插件",
+    plugin_github_link = "https://github.com/MengHanLOVE1027/lse-easybackuper",
+    plugin_minebbs_link = "https://www.minebbs.com/resources/easybackuper-eb.7771/",
+    plugin_update_url = "https://raw.githubusercontent.com/MengHanLOVE1027/lse-easybackuper/main/update_versions.json"
+    plugin_license = "AGPL-3.0",
     plugin_path = `./plugins/${plugin_name}`,
     backup_tmp_path = "./backup_tmp/", // 临时复制解压缩路径
     world_level_name = /level-name=(.*)/.exec(File.readFrom('./server.properties'))[1], // 获取存档名称
     world_folder_path = `./worlds/${world_level_name}/` // 存档路径
 // #endregion
-
 
 // TAG: 配置文件模块
 // #region 配置文件模块
@@ -71,216 +301,27 @@ const pluginConfigFile = {
     Debug_MoreLogs_Cron: false,
     Restore: {
         backup_old_world_before_restore: true
+    },
+    Bstats: {
+        EnableModule: true,
+        logSentData: false,
+        serverUUID: ""
     }
 }
-// #region i18n国际化文件初始化
-// i18n国际化文件初始化
-const i18nLangFile = {
-    localeName: {
-        src: "translation",
-    },
-    zh_CN: {
-        loaded_text_author: "作者",
-        loaded_text_author_nickname: "梦涵LOVE",
-        loaded_text_version: "版本",
-        loaded_text_description: "一个基于 LSE引擎 的轻量级、高性能、功能全面的Minecraft服务器热备份插件",
-        loaded_text_plugin_installed_success: "EasyBackuper 安装成功！",
-        loaded_text_the_helps: "查看帮助：https://www.minebbs.com/resources/easybackuper-eb.7771/",
-        loaded_text_copyright: "务必保留原作者信息！",
-        loaded_text_plugins_github_storehouse: "GitHub 仓库",
-        loaded_text_plugins_github_storehouse_link: "https://github.com/MengHanLOVE1027/EasyBackuper",
-        loaded_text_the_latest_log: "一个基于 LSE引擎 的轻量级、高性能、功能全面的Minecraft服务器热备份插件",
-        init_config_file_success: "初始化文件成功",
-        backup_broadcast_start: "§2§l[EasyBackuper]§r§3开始备份力！",
-        backup_broadcast_check_copy_success: "§2§l[EasyBackuper]§r§6拷贝成功！",
-        backup_broadcast_check_copy_wrong: "§2§l[EasyBackuper]§r§c拷贝失败！",
-        backup_broadcast_check_compress_success: "§2§l[EasyBackuper]§r§6备份成功！§e备份存档：",
-        backup_broadcast_check_compress_wrong: "§2§l[EasyBackuper]§r§c备份失败！",
-        backup_processing: "操作中：",
-        backup_check_copying: "拷贝中...",
-        backup_check_copy_success: "拷贝成功",
-        backup_check_copy_wrong: "拷贝出错",
-        backup_truncate_success: "截取成功",
-        backup_truncate_wrong: "截取失败",
-        backup_check_compressing: "压缩中...",
-        backup_check_compress_success: "备份成功！压缩包位于：",
-        backup_check_compress_wrong: "压缩出错",
-        auto_backup_status: "自动备份状态：",
-        auto_backup_start: "自动备份正在启动中...",
-        auto_cleanup_status: "自动清理状态：",
-        auto_cleaup_start: "自动清理正在启动中...",
-        auto_cleaup_do_not_start: "本小姐看了一下，很干净捏~",
-        auto_cleaup_success: "清理成功，清理了：",
-        auto_cleaup_wrong: "清理失败！",
-        reload_text: "重载中...",
-        reload_text_pluginConfig: "配置文件：",
-        reload_text_i18nLangConfig: "i18n文件：",
-        debug_morelogs_status: "Debug更多日志状态(控制台)：",
-        debug_morelogs_player_status: "Debug更多日志状态(玩家)：",
-        debug_morelogs_cron_status: "Debug更多日志状态(Cron)：",
-        restore_no_backups: "没有找到可用的备份文件",
-        restore_list_header: "===== 可用备份列表 =====",
-        restore_list_item: "[%d] %s (%s)",
-        restore_list_footer: "=====================",
-        restore_invalid_index: "无效的备份索引: %s",
-        restore_invalid_argument: "无效的参数: %s",
-        restore_confirm: "确认要回档到 %s 吗？此操作不可逆！",
-        restore_confirming: "正在回档到备份: %s",
-        restore_success: "回档成功！备份: %s",
-        restore_failed: "回档失败: %s",
-        restore_extracting: "正在解压备份: %s",
-        restore_backuping_current: "正在备份当前存档...",
-        restore_backup_current_success: "当前存档备份成功！",
-        restore_backup_current_failed: "当前存档备份失败，继续回档...",
-        restore_restoring: "正在恢复存档...",
-        restore_restore_success: "存档恢复成功！",
-        restore_restore_failed: "存档恢复失败: %s",
-        restore_no_permission: "您没有权限执行此操作！",
-        restore_help: "§a[EasyBackuper] §f回档命令帮助:\n§e/restore §f- 显示此帮助信息\n§e/restore list <数量> §f- 列出指定数量的备份\n§e/restore <索引> §f- 回档到指定索引的备份",
-        restore_help_console: "回档命令帮助:\n/restore - 显示此帮助信息\n/restore list <数量> - 列出指定数量的备份\n/restore <索引> - 回档到指定索引的备份",
-        restore_help_player: "回档命令帮助:\n/restore - 显示此帮助信息\n/restore list <数量> - 列出指定数量的备份\n/restore <索引> - 回档到指定索引的备份",
-        restore_file_not_found: "备份文件不存在: %s",
-        restore_extract_failed: "解压备份失败: %s",
-        restore_world_not_found: "存档文件夹不存在: %s",
-        restore_backup_in_progress: "正在备份中，请等待备份完成后再回档！",
-        restore_restore_in_progress: "正在回档中，请等待当前回档完成！",
-        restore_starting: "开始回档操作，索引: %s",
-        restore_rejected_backing_up: "回档操作被拒绝: 正在备份中",
-        restore_rejected_restoring: "回档操作被拒绝: 正在回档中",
-        restore_processing_request: "开始处理回档请求...",
-        restore_scanning_folder: "正在扫描备份文件夹: %s",
-        restore_found_backups: "找到 %s 个备份文件",
-        restore_selected_backup: "选择的备份文件: %s",
-        restore_backup_full_path: "备份文件完整路径: %s",
-        restore_request_recorded: "已记录回档请求，将在服务器关闭时执行回档到第 %s 个备份",
-        restore_request_recorded_player: "已记录回档请求，将在服务器关闭时执行回档到 %s",
-        restore_pending_detected: "检测到待执行的回档操作，索引: %s",
-        restore_total_backups: "备份文件总数: %s",
-        restore_pending_index: "待执行的回档索引: %s",
-        restore_backup_file: "备份文件: %s",
-        restore_external_exe_not_exist: "外部回档程序不存在: %s",
-        restore_preparing_external_exe: "准备启动外部回档程序: %s",
-        restore_external_exe_args: "传递给外部程序的参数: %s",
-        restore_external_exe_pid: "外部程序进程ID: %s",
-        restore_external_exe_started: "外部回档程序已启动，将在服务器关闭后执行回档操作",
-        restore_external_exe_start_failed: "启动外部回档程序失败: %s",
-        restore_error_details: "错误详情: %s",
-        restore_invalid_index_range: "无效的备份索引: %s，可用范围: 1-%s",
-        restore_available_backups_list: "可用的备份文件列表:",
-        restore_backup_list_item: "  [%d] %s (时间: %s)"
-    },
-    en_US: {
-        loaded_text_author: "Author",
-        loaded_text_author_nickname: "MengHanLOVE",
-        loaded_text_version: "Version",
-        loaded_text_description: "A lightweight, high-performance, and feature-rich hot backup plugin for Minecraft servers based on LSE.",
-        loaded_text_plugin_installed_success: "EasyBackuper has been installed.",
-        loaded_text_the_helps: "See the helps: https://www.minebbs.com/resources/easybackuper-eb.7771/",
-        loaded_text_copyright: "Please keep the original author information!",
-        loaded_text_plugins_github_storehouse: "Github Repository",
-        loaded_text_plugins_github_storehouse_link: "https://github.com/MengHanLOVE1027/EasyBackuper",
-        loaded_text_the_latest_log: "A lightweight, high-performance, and feature-rich hot backup plugin for Minecraft servers based on LSE.",
-        init_config_file_success: "Init Configs Success",
-        backup_broadcast_start: "§2[EasyBackuper]§r§3Start the backup",
-        backup_broadcast_check_copy_success: "§2[EasyBackuper]§r§6Copy Success!",
-        backup_broadcast_check_copy_wrong: "§2[EasyBackuper]§r§cCopy Wrong!",
-        backup_broadcast_check_compress_success: "§2[EasyBackuper]§r§cBackup Success! §eThe archive is: ",
-        backup_broadcast_check_compress_wrong: "§2[EasyBackuper]§r§cBackup Wrong!",
-        backup_processing: "Processing: ",
-        backup_check_copying: "Copying...",
-        backup_check_copy_success: "Copy Success",
-        backup_check_copy_wrong: "Copy Wrong",
-        backup_truncate_success: "Truncate Success",
-        backup_truncate_wrong: "Truncate Wrong",
-        backup_check_compressing: "Compressing...",
-        backup_check_compress_success: "Backup Success! The archive is located in: ",
-        backup_check_compress_wrong: "Compress Wrong",
-        auto_backup_status: "Auto Backup Status: ",
-        auto_backup_start: "Auto Backup is Starting...",
-        auto_cleanup_status: "Automatic Cleanup Status: ",
-        auto_cleaup_start: "Automatic Cleanup is Starting...",
-        auto_cleaup_do_not_start: "The number of backup folders does not reach the specified number, the cleanup is stopped",
-        auto_cleaup_success: "Cleanup is Success, Cleaned: ",
-        auto_cleaup_wrong: "Cleanup is Wrong",
-        reload_text: "Reloading...",
-        reload_text_pluginConfig: "Config File: ",
-        reload_text_i18nLangConfig: "i18n File: ",
-        debug_morelogs_status: "Debug More Logs Status(Console): ",
-        debug_morelogs_player_status: "Debug More Logs Status(Player): ",
-        debug_morelogs_cron_status: "Debug More Logs Status(Cron): ",
-        restore_no_backups: "No available backup files found",
-        restore_list_header: "===== Available Backups =====",
-        restore_list_item: "[%d] %s (%s)",
-        restore_list_footer: "=====================",
-        restore_invalid_index: "Invalid backup index: %s",
-        restore_invalid_argument: "Invalid argument: %s",
-        restore_confirm: "Confirm restore to %s? This action cannot be undone!",
-        restore_confirming: "Restoring to backup: %s",
-        restore_success: "Restore successful! Backup: %s",
-        restore_failed: "Restore failed: %s",
-        restore_extracting: "Extracting backup: %s",
-        restore_backuping_current: "Backing up current world...",
-        restore_backup_current_success: "Current world backup successful!",
-        restore_backup_current_failed: "Current world backup failed, continuing restore...",
-        restore_restoring: "Restoring world...",
-        restore_restore_success: "World restore successful!",
-        restore_restore_failed: "World restore failed: %s",
-        restore_no_permission: "You don't have permission to perform this action!",
-        restore_help: "§a[EasyBackuper] §fRestore command help:\n§e/restore §f- Show this help message\n§e/restore list <count> §f- List specified number of backups\n§e/restore <index> §f- Restore to backup with specified index",
-        restore_help_console: "Restore command help:\n/restore - Show this help message\n/restore list <count> - List specified number of backups\n/restore <index> - Restore to backup with specified index",
-        restore_help_player: "Restore command help:\n/restore - Show this help message\n/restore list <count> - List specified number of backups\n/restore <index> - Restore to backup with specified index",
-        restore_file_not_found: "Backup file not found: %s",
-        restore_extract_failed: "Failed to extract backup: %s",
-        restore_world_not_found: "World folder not found: %s",
-        restore_backup_in_progress: "Backup in progress, please wait for backup to complete before restoring!",
-        restore_restore_in_progress: "Restore in progress, please wait for current restore to complete!",
-        restore_starting: "Starting restore operation, index: %s",
-        restore_rejected_backing_up: "Restore operation rejected: Backup in progress",
-        restore_rejected_restoring: "Restore operation rejected: Restore in progress",
-        restore_processing_request: "Starting to process restore request...",
-        restore_scanning_folder: "Scanning backup folder: %s",
-        restore_found_backups: "Found %s backup files",
-        restore_selected_backup: "Selected backup file: %s",
-        restore_backup_full_path: "Backup file full path: %s",
-        restore_request_recorded: "Restore request recorded, will execute restore to backup #%s when server shuts down",
-        restore_request_recorded_player: "Restore request recorded, will execute restore to %s when server shuts down",
-        restore_pending_detected: "Detected pending restore operation, index: %s",
-        restore_total_backups: "Total backup files: %s",
-        restore_pending_index: "Pending restore index: %s",
-        restore_backup_file: "Backup file: %s",
-        restore_external_exe_not_exist: "External restore program not found: %s",
-        restore_preparing_external_exe: "Preparing to start external restore program: %s",
-        restore_external_exe_args: "Arguments passed to external program: %s",
-        restore_external_exe_pid: "External program process ID: %s",
-        restore_external_exe_started: "External restore program started, restore will execute after server shutdown",
-        restore_external_exe_start_failed: "Failed to start external restore program: %s",
-        restore_error_details: "Error details: %s",
-        restore_invalid_index_range: "Invalid backup index: %s, available range: 1-%s",
-        restore_available_backups_list: "Available backup files list:",
-        restore_backup_list_item: "  [%d] %s (Time: %s)"
-    },
-}
-// #endregion
 
 // 创建配置文件
 let pluginConfig = new JsonConfigFile(
     plugin_path + `/config/${plugin_name}.json`,
     JSON.stringify(pluginConfigFile)
 )
-let i18nLangConfig = new JsonConfigFile(
-    plugin_path + "/i18n/translation.json",
-    JSON.stringify(i18nLangFile)
-)
-// 加载i18n国际化文件
-let i18nLocaleName = pluginConfig.get("Language")
-i18n.load(plugin_path + "/i18n/translation.json", i18nLocaleName)
 // #endregion
-
 
 // TAG: 全局变量模块
 // #region 全局变量模块
 // 全局变量
 let pl, yes_no_console
+// BStats实例
+let bstatsInstance = null
 // Cron相关变量
 let scheduled_tasks = pluginConfig.get('Scheduled_Tasks')
 let scheduled_tasks_status = scheduled_tasks['Status']
@@ -310,6 +351,59 @@ let pending_restore_index = null
 // 备份状态变量
 let is_backing_up = false
 
+// ── 全局随机颜色对（Logo、Tip、logInfo 共用）────────────────
+function randomVividColor() {
+    // 排除绿色(90°~150°)和深紫色(260°~300°)
+    // 可用色相段：[0,90) [150,260) [300,360) 共 260°
+    const rand = Math.random() * 260;
+    let h;
+    if (rand < 90) h = rand;           // 红/橙/黄
+    else if (rand < 200) h = rand + 60;      // 青/蓝  (150~260)
+    else h = rand + 100;     // 粉/洋红 (300~360)
+
+    const s = 0.90 + Math.random() * 0.10;  // 90%~100% 高饱和
+    const l = 0.65 + Math.random() * 0.15;  // 65%~80%  高亮度
+    const a = s * Math.min(l, 1 - l);
+    function f(n) {
+        const k = (n + h / 30) % 12;
+        return Math.round((l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))) * 255);
+    }
+    return [f(0), f(8), f(4)];
+}
+
+function generateColorPair() {
+    const c1 = randomVividColor();
+    let c2, attempts = 0;
+    do {
+        c2 = randomVividColor();
+        const diff = Math.abs(c1[0] - c2[0]) + Math.abs(c1[1] - c2[1]) + Math.abs(c1[2] - c2[2]);
+        if (diff > 150 || attempts++ > 20) break;
+    } while (true);
+    return [c1, c2];
+}
+
+// 全局唯一颜色对，本次启动所有渐变共用
+const [GLOBAL_C1, GLOBAL_C2] = generateColorPair();
+
+function globalLerpColor(t) {
+    return [
+        Math.round(GLOBAL_C1[0] + (GLOBAL_C2[0] - GLOBAL_C1[0]) * t),
+        Math.round(GLOBAL_C1[1] + (GLOBAL_C2[1] - GLOBAL_C1[1]) * t),
+        Math.round(GLOBAL_C1[2] + (GLOBAL_C2[2] - GLOBAL_C1[2]) * t)
+    ];
+}
+
+function RandomColor(text) {
+    const len = text.length;
+    let out = '';
+    for (let i = 0; i < len; i++) {
+        const t = len <= 1 ? 0 : i / (len - 1);
+        const [r, g, b] = globalLerpColor(t);
+        out += `\x1b[38;2;${r};${g};${b}m` + text[i];
+    }
+    return (out + '\x1b[0m');
+}
+
 // TAG: 日志系统模块
 // #region 日志系统模块
 /**
@@ -327,7 +421,6 @@ function formatString(str, ...args) {
     // 支持 %s 和 %d 格式化占位符
     return str.replace(/%[sd]/g, () => args.shift())
 }
-
 
 /**
  * 格式化文件大小
@@ -359,30 +452,38 @@ function pluginPrint(text, level = "INFO") {
     // 日志级别颜色映射
     const level_colors = {
         "DEBUG": "\x1b[36m",    // 青色
+        "INFO": "\x1b[37m",     // 白色
+        "WARNING": "\x1b[33m",  // 黄色
+        "ERROR": "\x1b[31m",    // 红色
         "SUCCESS": "\x1b[32m"   // 绿色
     }
+
+    // 获取颜色
+    const level_color = level_colors[level] || "\x1b[37m"
+    const logger_head = `[${level_color}${level}\x1b[0m] `
 
     // 根据日志级别使用不同的logger方法
     switch (level) {
         case "INFO":
-            logger.info(String(text))
+            logger.info(String(RandomColor(text)))
+            break
+        case "SUCESS":
+            logger.info(logger_head + String(RandomColor(text)))
+            break
+        case "DEBUG":
+            logger.info(logger_head + String(RandomColor(text)))
             break
         case "WARNING":
-            logger.warn(String(text))
+            logger.warn(String(RandomColor(text)))
             break
         case "ERROR":
-            logger.error(String(text))
+            logger.error(String(RandomColor(text)))
             break
-        default:
-            // DEBUG 和 SUCCESS 使用自定义颜色
-            const level_color = level_colors[level] || "\x1b[37m"
-            const logger_head = `[${level_color}${level}\x1b[0m] `
-            logger.log(logger_head + String(text))
     }
 
     // 写入到日志文件
     try {
-        const log_dir = "./logs/EasyBackuper/"
+        const log_dir = `./logs/${plugin_name}/`
         if (!File.exists(log_dir)) {
             // 创建目录文件对象
             const dir_file = new File(log_dir, File.WriteMode)
@@ -398,7 +499,7 @@ function pluginPrint(text, level = "INFO") {
         const seconds = String(now.getSeconds()).padStart(2, '0')
         const milliseconds = String(now.getMilliseconds()).padStart(3, '0')
         const timestamp = `${year}-${month}-${day} ${hours}:${minutes}:${seconds},${milliseconds}`
-        const log_file = `${log_dir}${plugin_name}_${now.toISOString().split('T')[0]}.log`
+        const log_file = `${log_dir}${plugin_name_smallest}_${now.toISOString().split('T')[0]}.log`
         const log_line = `${timestamp} - ${plugin_name} - ${level} - ${text}`
         File.writeLine(log_file, log_line)
     } catch (e) {
@@ -555,17 +656,13 @@ function logCurrentTime() {
 
     // 防止1秒内20游戏刻重复调用备份
     if (Cron_Use_Backup == true) {
-        pluginPrint(i18n.get('auto_backup_start'), "INFO")
+        pluginPrint("自动备份正在启动中...", "INFO")
         Start()
         // 清空数值方便下次被正确调用时可以继续备份
         Cron_Use_Backup = false
     }
 }
 // #endregion
-
-
-
-
 
 // TAG: 清理冗余备份文件模块
 // #region 清理冗余备份文件模块
@@ -657,14 +754,14 @@ function deleteOldBackups(backupDir, maxBackups) {
         // 对返回值进行判断是否成功运行
         if (err_out) {
             for (let i = 0; i < ending.length; i++) {
-                pluginPrint(i18n.get('auto_cleaup_success') + ending[i], "INFO")
+                pluginPrint("清理成功，清理了：" + ending[i], "INFO")
             }
         } else {
             // 当备份文件夹文件小于等于用户设置最大保留值时
-            pluginPrint(i18n.get('auto_cleaup_wrong'), "ERROR")
+            pluginPrint("清理失败！", "ERROR")
         }
     } else {
-        pluginPrint(i18n.get('auto_cleaup_do_not_start'), "INFO")
+        pluginPrint("本小姐看了一下，很干净捏~", "INFO")
     }
 }
 // #endregion
@@ -688,13 +785,12 @@ function Clean_Backup_Files() {
     // 判断选择方式
     if (use_number_detection_status) {
         // 调用函数，例如删除除了最新的5个文件外的所有文件
-        pluginPrint(i18n.get('auto_cleaup_start'), "WARNING")
+        pluginPrint("自动清理正在启动中...", "WARNING")
         deleteOldBackups(pluginConfig.get('BackupFolderPath'), use_number_detection_max_number)
     }
 }
 // #endregion
 // #endregion
-
 
 // TAG: 通知模块(包含开始运行)
 // #region 通知模块(包含开始运行)
@@ -772,7 +868,6 @@ function Start(origin) {
 // #endregion
 // #endregion
 
-
 // TAG: 辅助备份模块
 // NOTE: (调试信息)递归复制子目录辅助函数
 // #region 递归复制子目录辅助函数
@@ -786,13 +881,13 @@ function copyFile(src_path, dst_path) {
     return new Promise((resolve, reject) => {
         try {
             if (Debug_Morelogs) {
-                pluginPrint(i18n.get("backup_processing") + `${src_path} ==> ${dst_path}`, "DEBUG")
+                pluginPrint("操作中：" + `${src_path} ==> ${dst_path}`, "DEBUG")
             }
             // 如果是文件，则复制文件
             File.copy(src_path, dst_path)
             resolve(true)
         } catch (e) {
-            pluginPrint(i18n.get("backup_check_copy_wrong") + ` ${src_path}: ${str(e)}`, "ERROR")
+            pluginPrint("拷贝出错" + ` ${src_path}: ${str(e)}`, "ERROR")
             reject(e)
         }
     })
@@ -864,7 +959,7 @@ function copyDirectoryMultithread(src, dest) {
                         setTimeout(processBatch, 0)
                     })
                     .catch(e => {
-                        pluginPrint(i18n.get("backup_check_copy_wrong") + `: ${str(e)}`, "ERROR")
+                        pluginPrint("拷贝出错" + `: ${str(e)}`, "ERROR")
                         reject(e)
                     })
             }
@@ -872,7 +967,7 @@ function copyDirectoryMultithread(src, dest) {
             // 开始处理第一批
             processBatch()
         } catch (e) {
-            pluginPrint(i18n.get("backup_check_copy_wrong") + `: ${str(e)}`, "ERROR")
+            pluginPrint("拷贝出错" + `: ${str(e)}`, "ERROR")
             reject(e)
         }
     })
@@ -902,7 +997,7 @@ function copyDirectory(src, dest, pl) {
         } else {
             // 调试信息(在配置文件中Debug_MoreLogs开启)
             if (Debug_Morelogs) {
-                pluginPrint(i18n.get("backup_processing") + `${srcPath} ==> ${destPath}`, "DEBUG")
+                pluginPrint("操作中：" + `${srcPath} ==> ${destPath}`, "DEBUG")
             }
             // 调试信息(在配置文件中Debug_MoreLogs_Player开启)
             if (Debug_Morelogs_Player) {
@@ -919,7 +1014,6 @@ function copyDirectory(src, dest, pl) {
     return true
 }
 // #endregion
-
 
 // TAG: 备份模块
 // NOTE: (调试信息)备份功能
@@ -948,21 +1042,19 @@ function Backup(pl, callback) {
     let world_folder_list = File.getFilesList(world_folder_path)
     let copy_return, compress_return
 
-
     // 如果开启广播功能则进行广播
     if (broadcast_status) {
         // type可选数字: 0-普通消息(Raw), 1-聊天消息(Chat) 5-物品栏上方的消息(Tip)
-        mc.broadcast(i18n.get('backup_broadcast_start'), 0)
-        mc.broadcast(i18n.get('backup_broadcast_start'), 5)
+        mc.broadcast("§2§l[EasyBackuper]§r§3开始备份力！", 0)
+        mc.broadcast("§2§l[EasyBackuper]§r§3开始备份力！", 5)
     }
-
 
     // NOTE: 暂停存档写入
     mc.runcmd("save hold")
-    pluginPrint(i18n.get("backup_check_copying"), "INFO") // 提示信息
+    pluginPrint("拷贝中...", "INFO") // 提示信息
     // 提醒使用该指令玩家
     if (yes_no_console == 0) {
-        pl.tell(i18n.get("backup_check_copying"))
+        pl.tell("拷贝中...")
     }
 
     // TAG: save query模块
@@ -983,9 +1075,6 @@ function Backup(pl, callback) {
             return false
         }
 
-        // logger.info('The server is ready to save!!!')
-
-
         // NOTE: 创建备份文件夹
         if (!File.exists(pluginConfig.get("BackupFolderPath"))) {
             File.mkdir(pluginConfig.get("BackupFolderPath"))
@@ -1005,14 +1094,14 @@ function Backup(pl, callback) {
 
             // 调试信息(在配置文件中Debug_MoreLogs开启)
             if (Debug_Morelogs) {
-                // logger.log('[Debug] ' + i18n.get("backup_processing") + `${world_folder_list[i]} --> ${currentPath}`)
-                pluginPrint(i18n.get("backup_processing") + `${world_folder_list[i]} --> ${currentPath}`, "DEBUG")
+                // logger.log('[Debug] ' + "操作中：" + `${world_folder_list[i]} --> ${currentPath}`)
+                pluginPrint("操作中：" + `${world_folder_list[i]} --> ${currentPath}`, "DEBUG")
             }
             // 调试信息(在配置文件中Debug_MoreLogs_Player开启)
             if (Debug_Morelogs_Player) {
                 // 提醒使用该指令玩家
                 if (yes_no_console == 0) {
-                    pl.tell('[Debug] ' + i18n.get("backup_processing") + `${world_folder_list[i]} --> ${currentPath}`)
+                    pl.tell('[Debug] ' + "操作中：" + `${world_folder_list[i]} --> ${currentPath}`)
                 }
             }
 
@@ -1030,7 +1119,6 @@ function Backup(pl, callback) {
             }
         }
         // #endregion
-
 
         // NOTE: 截取文件
         // #region 截取文件
@@ -1052,18 +1140,17 @@ function Backup(pl, callback) {
         system.newProcess(`cmd /c ${pluginConfig.get("exe_mhlove_truncate_path")} "./file_paths_tmp.json" "${backup_tmp_path}"`, (exitcode, output) => {
             if (exitcode === 0) {
                 pluginPrint(`\n${output}`, "DEBUG")
-                pluginPrint(i18n.get("backup_truncate_success"), "SUCCESS")
+                pluginPrint("截取成功", "SUCCESS")
                 File.delete("./file_paths_tmp.json")
             } else {
                 pluginPrint(`\n${output}`, "DEBUG")
-                pluginPrint(i18n.get("backup_truncate_wrong"), "ERROR")
+                pluginPrint("截取失败", "ERROR")
                 File.delete("./file_paths_tmp.json")
             }
         })
         // return true
 
         // #endregion
-
 
         // NOTE: 获取当前时间
         function padZero(num) {
@@ -1098,11 +1185,11 @@ function Backup(pl, callback) {
                 backup_tmp = backup_tmp.slice(0, -1)
             }
             system.newProcess(pluginConfig.get("exe_7z_path") + ' a -tzip ' + '"' + backup_folder + `/${archive_name}` + '"' + ` ${backup_tmp}/*`, (exit, out) => {
-                pluginPrint(i18n.get("backup_check_compressing"), "INFO") // 提示信息
+                pluginPrint("压缩中...", "INFO") // 提示信息
 
                 // 提醒使用该指令玩家
                 if (yes_no_console == 0) {
-                    pl.tell(i18n.get("backup_check_compressing"))
+                    pl.tell("压缩中...")
                 }
 
                 // 将7za的输出写入日志文件
@@ -1126,38 +1213,37 @@ function Backup(pl, callback) {
         }, 2000)
         // #endregion
 
-
         // NOTE: 检查是否拷贝成功
         // #region 检查是否拷贝成功
         let check_copy = setInterval(() => {
             if (copy_return) { // 感觉没必要判断复制成功或失败，一般情况都是可以复制成功的
-                pluginPrint(i18n.get("backup_check_copy_success"), "SUCCESS")
+                pluginPrint("拷贝成功", "SUCCESS")
 
                 // 全体广播备份情况
                 // type可选数字: 0-普通消息(Raw), 1-聊天消息(Chat) 5-物品栏上方的消息(Tip)
                 if (broadcast_status) {
-                    mc.broadcast(i18n.get('backup_broadcast_check_copy_success'), 0)
-                    mc.broadcast(i18n.get('backup_broadcast_check_copy_success'), 5)
+                    mc.broadcast("§2§l[EasyBackuper]§r§6拷贝成功！", 0)
+                    mc.broadcast("§2§l[EasyBackuper]§r§6拷贝成功！", 5)
                 }
                 // 提醒使用该指令玩家
                 if (yes_no_console == 0) {
-                    pl.tell(i18n.get("backup_check_copy_success"))
+                    pl.tell("拷贝成功")
                 }
 
                 mc.runcmd("save resume") // 恢复存档写入
                 clearInterval(check_copy) // 退出循环函数
             } else {
-                pluginPrint(i18n.get("backup_check_copy_wrong"), "ERROR")
+                pluginPrint("拷贝出错", "ERROR")
 
                 // 全体广播备份情况
                 // type可选数字: 0-普通消息(Raw), 1-聊天消息(Chat) 5-物品栏上方的消息(Tip)
                 if (broadcast_status) {
-                    mc.broadcast(i18n.get('backup_broadcast_check_copy_wrong'), 0)
-                    mc.broadcast(i18n.get('backup_broadcast_check_copy_wrong'), 5)
+                    mc.broadcast("§2§l[EasyBackuper]§r§c拷贝失败！", 0)
+                    mc.broadcast("§2§l[EasyBackuper]§r§c拷贝失败！", 5)
                 }
                 // 提醒使用该指令玩家
                 if (yes_no_console == 0) {
-                    pl.tell(i18n.get("backup_check_copy_wrong"))
+                    pl.tell("拷贝出错")
                 }
 
                 mc.runcmd("save resume") // 恢复存档写入
@@ -1183,20 +1269,20 @@ function Backup(pl, callback) {
                     file_obj.close()
                     let archiveSizeMB = (archiveSize / (1024 * 1024)).toFixed(2) // 转换为MB并保留两位小数
 
-                    pluginPrint(i18n.get("backup_check_compress_success") + archivePath + ` (${archiveSizeMB} MB)`, "SUCCESS")
+                    pluginPrint("备份成功！压缩包位于：" + archivePath + ` (${archiveSizeMB} MB)`, "SUCCESS")
 
                     // 全体广播备份情况
                     // type可选数字: 0-普通消息(Raw), 1-聊天消息(Chat) 5-物品栏上方的消息(Tip)
                     if (broadcast_status) {
-                        mc.broadcast(i18n.get('backup_broadcast_check_compress_success') + `${archive_name} (${archiveSizeMB} MB)`, 0)
-                        mc.broadcast(i18n.get('backup_broadcast_check_compress_success') + `${archive_name} (${archiveSizeMB} MB)`, 5)
+                        mc.broadcast("§2§l[EasyBackuper]§r§6备份成功！§e备份存档：" + `${archive_name} (${archiveSizeMB} MB)`, 0)
+                        mc.broadcast("§2§l[EasyBackuper]§r§6备份成功！§e备份存档：" + `${archive_name} (${archiveSizeMB} MB)`, 5)
 
                         // 通知全体玩家(类似于成就获得提示)
                         Notice_Upper(broadcast_Backup_success_Title, broadcast_Backup_success_Message)
                     }
                     // 提醒使用该指令玩家
                     if (yes_no_console == 0) {
-                        pl.tell(i18n.get("backup_check_compress_success") + archivePath + ` (${archiveSizeMB} MB)`)
+                        pl.tell("备份成功！压缩包位于：" + archivePath + ` (${archiveSizeMB} MB)`)
                     }
                     File.delete(backup_tmp_path)
 
@@ -1217,57 +1303,57 @@ function Backup(pl, callback) {
                     }
 
                     clearInterval(check_compress) // 退出循环函数
-                    
+
                     // 调用回调函数
                     if (callback && typeof callback === "function") {
                         callback(true, archivePath)
                     }
                 } catch (e) {
                     pluginPrint(`获取压缩包大小失败: ${e}`, "ERROR")
-                    pluginPrint(i18n.get("backup_check_compress_wrong"), "ERROR")
+                    pluginPrint("压缩出错", "ERROR")
 
                     // 全体广播备份情况
                     // type可选数字: 0-普通消息(Raw), 1-聊天消息(Chat) 5-物品栏上方的消息(Tip)
                     if (broadcast_status) {
-                        mc.broadcast(i18n.get('backup_broadcast_check_compress_wrong'), 0)
-                        mc.broadcast(i18n.get('backup_broadcast_check_compress_wrong'), 5)
+                        mc.broadcast("§2§l[EasyBackuper]§r§c备份失败！", 0)
+                        mc.broadcast("§2§l[EasyBackuper]§r§c备份失败！", 5)
 
                         // 通知全体玩家(类似于成就获得提示)
                         Notice_Upper(broadcast_Backup_wrong_Title, broadcast_Backup_wrong_Message)
                     }
                     // 提醒使用该指令玩家
                     if (yes_no_console == 0) {
-                        pl.tell(i18n.get("backup_check_compress_wrong"))
+                        pl.tell("压缩出错")
                     }
 
                     File.delete(backup_tmp_path)
                     clearInterval(check_compress) // 退出循环函数
-                    
+
                     // 调用回调函数
                     if (callback && typeof callback === "function") {
                         callback(false, null)
                     }
                 }
             } else if (compress_return == 1) {
-                pluginPrint(i18n.get("backup_check_compress_wrong"), "ERROR")
+                pluginPrint("压缩出错", "ERROR")
 
                 // 全体广播备份情况
                 // type可选数字: 0-普通消息(Raw), 1-聊天消息(Chat) 5-物品栏上方的消息(Tip)
                 if (broadcast_status) {
-                    mc.broadcast(i18n.get('backup_broadcast_check_compress_wrong'), 0)
-                    mc.broadcast(i18n.get('backup_broadcast_check_compress_wrong'), 5)
+                    mc.broadcast("§2§l[EasyBackuper]§r§c备份失败！", 0)
+                    mc.broadcast("§2§l[EasyBackuper]§r§c备份失败！", 5)
 
                     // 通知全体玩家(类似于成就获得提示)
                     Notice_Upper(broadcast_Backup_wrong_Title, broadcast_Backup_wrong_Message)
                 }
                 // 提醒使用该指令玩家
                 if (yes_no_console == 0) {
-                    pl.tell(i18n.get("backup_check_compress_wrong"))
+                    pl.tell("压缩出错")
                 }
 
                 File.delete(backup_tmp_path)
                 clearInterval(check_compress) // 退出循环函数
-                
+
                 // 调用回调函数
                 if (callback && typeof callback === "function") {
                     callback(false, null)
@@ -1275,9 +1361,6 @@ function Backup(pl, callback) {
             }
         }, 200)
         // #endregion
-
-
-
 
         // 重置备份状态
         is_backing_up = false
@@ -1302,8 +1385,8 @@ function listBackups(origin, limit = 10) {
     try {
         const backup_folder = pluginConfig.get("BackupFolderPath")
         if (!File.exists(backup_folder)) {
-            const msg = `§c[EasyBackuper] §f${i18n.get("restore_no_backups")}`
-            pluginPrint(i18n.get("restore_no_backups"), "WARNING")
+            const msg = `§c[EasyBackuper] §f没有找到可用的备份文件`
+            pluginPrint("没有找到可用的备份文件", "WARNING")
             if (origin.typeName == "Player") {
                 pl = mc.getPlayer(origin.player.realName)
                 pl.tell(msg)
@@ -1363,8 +1446,8 @@ function listBackups(origin, limit = 10) {
         backup_files = backup_files.slice(0, limit)
 
         if (backup_files.length === 0) {
-            const msg = `§c[EasyBackuper] §f${i18n.get("restore_no_backups")}`
-            pluginPrint(i18n.get("restore_no_backups"), "WARNING")
+            const msg = `§c[EasyBackuper] §f没有找到可用的备份文件`
+            pluginPrint("没有找到可用的备份文件", "WARNING")
             if (origin.typeName == "Player") {
                 pl = mc.getPlayer(origin.player.realName)
                 pl.tell(msg)
@@ -1373,36 +1456,36 @@ function listBackups(origin, limit = 10) {
         }
 
         // 发送备份列表
-        const header = `§a[EasyBackuper] §f${i18n.get("restore_list_header")}`
+        const header = `§a[EasyBackuper] §f===== 可用备份列表 =====`
         if (origin.typeName == "Player") {
             pl = mc.getPlayer(origin.player.realName)
             pl.tell(header)
             for (let i = 0; i < backup_files.length; i++) {
                 const file = backup_files[i]
                 const file_size = formatFileSize(file.size)
-                const item = `§a[EasyBackuper] §f${formatString(i18n.get("restore_list_item"), String(i + 1), file.name, file_size)}`
+                const item = `§a[EasyBackuper] §f${formatString("[%d] %s (%s)", String(i + 1), file.name, file_size)}`
                 pl.tell(item)
             }
-            pl.tell(`§a[EasyBackuper] §f${i18n.get("restore_list_footer")}`)
+            pl.tell(`§a[EasyBackuper] §f=====================`)
         } else {
-            pluginPrint(i18n.get("restore_list_header"), "INFO")
+            pluginPrint("===== 可用备份列表 =====", "INFO")
             for (let i = 0; i < backup_files.length; i++) {
                 const file = backup_files[i]
                 const file_size = formatFileSize(file.size)
-                const item = formatString(i18n.get("restore_list_item"), String(i + 1), file.name, file_size)
+                const item = formatString("[%d] %s (%s)", String(i + 1), file.name, file_size)
                 pluginPrint(item, "INFO")
             }
-            pluginPrint(i18n.get("restore_list_footer"), "INFO")
+            pluginPrint("=====================", "INFO")
         }
     } catch (e) {
         pluginPrint(`listBackups 错误: ${e}`, "ERROR")
         pluginPrint(`错误堆栈: ${e.stack}`, "ERROR")
-        const msg = `§c[EasyBackuper] §f${formatString(i18n.get("restore_failed"), String(e))}`
+        const msg = `§c[EasyBackuper] §f${formatString("回档失败: %s", String(e))}`
         if (origin.typeName == "Player") {
             pl = mc.getPlayer(origin.player.realName)
             pl.tell(msg)
         }
-        pluginPrint(formatString(i18n.get("restore_failed"), String(e)), "ERROR")
+        pluginPrint(formatString("回档失败: %s", String(e)), "ERROR")
     }
 }
 
@@ -1412,7 +1495,7 @@ function listBackups(origin, limit = 10) {
  * @param {Number} restore_index 备份索引（从1开始）
  */
 function startRestore(origin, restore_index) {
-    pluginPrint(formatString(i18n.get("restore_starting"), String(restore_index)), "INFO")
+    pluginPrint(formatString("开始回档操作，索引: %s", String(restore_index)), "INFO")
 
     // 检查origin对象是否存在
     if (typeof origin === 'undefined' || origin === null) {
@@ -1428,9 +1511,9 @@ function startRestore(origin, restore_index) {
 
     // 检查是否正在备份
     if (is_backing_up) {
-        pluginPrint(i18n.get("restore_rejected_backing_up"), "WARNING")
-        pluginPrint(i18n.get("restore_backup_in_progress"), "WARNING")
-        const msg = `§c[EasyBackuper] §f${i18n.get("restore_backup_in_progress")}`
+        pluginPrint("回档操作被拒绝: 正在备份中", "WARNING")
+        pluginPrint("正在备份中，请等待备份完成后再回档！", "WARNING")
+        const msg = `§c[EasyBackuper] §f正在备份中，请等待备份完成后再回档！`
         if (yes_no_console == 0) {
             pl = mc.getPlayer(origin.player.realName)
             pl.tell(msg)
@@ -1440,9 +1523,9 @@ function startRestore(origin, restore_index) {
 
     // 检查是否正在回档
     if (is_restoring) {
-        pluginPrint(i18n.get("restore_rejected_restoring"), "WARNING")
-        pluginPrint(i18n.get("restore_restore_in_progress"), "WARNING")
-        const msg = `§c[EasyBackuper] §f${i18n.get("restore_restore_in_progress")}`
+        pluginPrint("回档操作被拒绝: 正在回档中", "WARNING")
+        pluginPrint("正在回档中，请等待当前回档完成！", "WARNING")
+        const msg = `§c[EasyBackuper] §f正在回档中，请等待当前回档完成！`
         if (yes_no_console == 0) {
             pl = mc.getPlayer(origin.player.realName)
             pl.tell(msg)
@@ -1451,7 +1534,7 @@ function startRestore(origin, restore_index) {
     }
 
     try {
-        pluginPrint(i18n.get("restore_processing_request"), "INFO")
+        pluginPrint("开始处理回档请求...", "INFO")
 
         let backup_folder = pluginConfig.get("BackupFolderPath")
         // 移除路径末尾的斜杠
@@ -1460,8 +1543,8 @@ function startRestore(origin, restore_index) {
         }
 
         if (!File.exists(backup_folder)) {
-            pluginPrint(formatString(i18n.get("restore_world_not_found"), backup_folder), "ERROR")
-            const msg = `§c[EasyBackuper] §f${formatString(i18n.get("restore_world_not_found"), backup_folder)}`
+            pluginPrint(formatString("存档文件夹不存在: %s", backup_folder), "ERROR")
+            const msg = `§c[EasyBackuper] §f${formatString("存档文件夹不存在: %s", backup_folder)}`
             if (yes_no_console == 0) {
                 pl = mc.getPlayer(origin.player.realName)
                 pl.tell(msg)
@@ -1470,7 +1553,7 @@ function startRestore(origin, restore_index) {
         }
 
         // 获取所有备份文件（支持多种压缩格式）
-        pluginPrint(formatString(i18n.get("restore_scanning_folder"), backup_folder), "INFO")
+        pluginPrint(formatString("正在扫描备份文件夹: %s", backup_folder), "INFO")
         let backup_files = []
         const supported_extensions = [".zip", ".7z", ".tar.gz", ".tgz"]
 
@@ -1511,15 +1594,15 @@ function startRestore(origin, restore_index) {
             }
         }
 
-        pluginPrint(formatString(i18n.get("restore_found_backups"), String(backup_files.length)), "INFO")
+        pluginPrint(formatString("找到 %s 个备份文件", String(backup_files.length)), "INFO")
 
         // 按修改时间倒序排序（最新的在前）
         backup_files.sort((a, b) => b.mtime - a.mtime)
 
         // 检查索引是否有效
         if (restore_index < 1 || restore_index > backup_files.length) {
-            pluginPrint(formatString(i18n.get("restore_invalid_index_range"), String(restore_index), String(backup_files.length)), "ERROR")
-            const msg = `§c[EasyBackuper] §f${formatString(i18n.get("restore_invalid_index"), String(restore_index))}`
+            pluginPrint(formatString("无效的备份索引: %s，可用范围: 1-%s", String(restore_index), String(backup_files.length)), "ERROR")
+            const msg = `§c[EasyBackuper] §f${formatString("无效的备份索引: %s", String(restore_index))}`
             if (yes_no_console == 0) {
                 pl = mc.getPlayer(origin.player.realName)
                 pl.tell(msg)
@@ -1532,7 +1615,7 @@ function startRestore(origin, restore_index) {
         const backup_old_world = restore_config.backup_old_world_before_restore
         if (backup_old_world) {
             pluginPrint("回档前备份当前的世界...", "INFO")
-            
+
             // 使用回调函数来等待备份完成
             Backup(origin, (success, archivePath) => {
                 if (success) {
@@ -1549,7 +1632,7 @@ function startRestore(origin, restore_index) {
                     return
                 }
             })
-            
+
             // 在这里返回，等待回调函数继续执行
             return
         } else {
@@ -1564,7 +1647,7 @@ function startRestore(origin, restore_index) {
             pl.tell(msg)
         }
     }
-    }
+}
 // #endregion
 
 /**
@@ -1574,8 +1657,14 @@ function startRestore(origin, restore_index) {
  * @param {Array} backup_files 备份文件列表
  */
 function continueRestore(origin, restore_index, backup_files) {
+    // 保存玩家名称，避免在回调中访问origin.player
+    let player_name = null;
+    if (origin && origin.typeName == "Player" && origin.player) {
+        player_name = origin.player.realName;
+    }
+
     try {
-        pluginPrint(i18n.get("restore_processing_request"), "INFO")
+        pluginPrint("开始处理回档请求...", "INFO")
 
         // 获取选中的备份文件
         const selected_backup = backup_files[restore_index - 1]
@@ -1583,8 +1672,8 @@ function continueRestore(origin, restore_index, backup_files) {
         // 格式化时间
         const time_str = new Date(selected_backup.mtime).toLocaleString()
 
-        pluginPrint(formatString(i18n.get("restore_selected_backup"), selected_backup.name, time_str), "INFO")
-        pluginPrint(formatString(i18n.get("restore_backup_full_path"), selected_backup.path), "INFO")
+        pluginPrint(formatString("选择的备份文件: %s", selected_backup.name, time_str), "INFO")
+        pluginPrint(formatString("备份文件完整路径: %s", selected_backup.path), "INFO")
 
         // 开始解压备份文件
         pluginPrint("开始解压备份文件...", "INFO")
@@ -1640,9 +1729,11 @@ function continueRestore(origin, restore_index, backup_files) {
 
                 // 通知用户
                 const msg = `§a[EasyBackuper] §f备份文件 ${selected_backup.name} 已解压完成，请关闭服务器。重新启动服务器后将自动完成回档操作。`
-                if (yes_no_console == 0) {
-                    pl = mc.getPlayer(origin.player.realName)
-                    pl.tell(msg)
+                if (yes_no_console == 0 && player_name) {
+                    pl = mc.getPlayer(player_name)
+                    if (pl) {
+                        pl.tell(msg)
+                    }
                 }
 
                 pluginPrint("请关闭服务器。重新启动服务器后将自动完成回档操作。", "INFO")
@@ -1650,33 +1741,37 @@ function continueRestore(origin, restore_index, backup_files) {
                 pluginPrint(`备份文件解压失败，退出代码: ${exitcode}`, "ERROR")
                 pluginPrint(`输出: ${output}`, "ERROR")
                 const msg = `§c[EasyBackuper] §f备份文件解压失败，退出代码: ${exitcode}`
-                if (yes_no_console == 0) {
-                    pl = mc.getPlayer(origin.player.realName)
-                    pl.tell(msg)
+                if (yes_no_console == 0 && player_name) {
+                    pl = mc.getPlayer(player_name)
+                    if (pl) {
+                        pl.tell(msg)
+                    }
                 }
             }
         })
     } catch (e) {
         pluginPrint(`continueRestore 错误: ${e}`, "ERROR")
         pluginPrint(`错误堆栈: ${e.stack}`, "ERROR")
-        const msg = `§c[EasyBackuper] §f${formatString(i18n.get("restore_failed"), String(e))}`
-        if (yes_no_console == 0) {
-            pl = mc.getPlayer(origin.player.realName)
-            pl.tell(msg)
+        const msg = `§c[EasyBackuper] §f${formatString("回档失败: %s", String(e))}`
+        if (yes_no_console == 0 && player_name) {
+            pl = mc.getPlayer(player_name)
+            if (pl) {
+                pl.tell(msg)
+            }
         }
-        pluginPrint(formatString(i18n.get("restore_failed"), String(e)), "ERROR")
+        pluginPrint(formatString("回档失败: %s", String(e)), "ERROR")
     }
 }
 // #endregion
 
 // TAG: 重载插件模块
-// #region 重载配置文件和i18n
+// #region 重载配置文件
 /**
- * 重载配置文件和i18n
- * @returns {Array} (数组)配置文件重载状态[0]和i18n重载状态[1]
+ * 重载配置文件
+ * @returns {Array} (数组)配置文件重载状态[0]
  */
 function ReloadPlugin() {
-    let a, b, c = []
+    let a = []
     a = pluginConfig.reload() // 配置文件重载
     // Debug相关
     Debug_Morelogs = pluginConfig.get("Debug_MoreLogs")
@@ -1694,14 +1789,7 @@ function ReloadPlugin() {
     use_number_detection_status = use_number_detection['Status']
     use_number_detection_max_number = use_number_detection['Max_Number']
     use_number_detection_mode = use_number_detection['Mode']
-
-    b = i18nLangConfig.reload() // i18n文件重载
-    let i18nLocaleName = pluginConfig.get("Language") // 重载i18n语言选择
-    i18n.load(plugin_path + "/i18n/translation.json", i18nLocaleName) // 加载i18n对应语言
-
-    // 将a和b的结果放入到数组c中并返回值
-    c.push(a, b)
-    return c
+    return a
 }
 // #endregion
 
@@ -1710,9 +1798,6 @@ function ReloadPlugin() {
 // #region 初始化配置文件模块
 function InitPluginConfig() {
     // 检测配置文件是否存在
-    if (File.exists(plugin_path + "/i18n/translation.json")) {
-        File.delete(plugin_path + "/i18n/translation.json")
-    }
     if (File.exists(plugin_path + `/config/${plugin_name}.json`)) {
         File.delete(plugin_path + `/config/${plugin_name}.json`)
     }
@@ -1722,15 +1807,8 @@ function InitPluginConfig() {
         plugin_path + `/config/${plugin_name}.json`,
         JSON.stringify(pluginConfigFile)
     )
-    new JsonConfigFile(
-        plugin_path + "/i18n/translation.json",
-        JSON.stringify(i18nLangFile)
-    )
 }
 // #endregion
-
-
-
 
 // TAG: 注册指令模块
 // #region 注册指令
@@ -1738,7 +1816,7 @@ function InitPluginConfig() {
  * 注册指令
  */
 function RegisterCmd() {
-    const backup_cmd = mc.newCommand("backup", i18n.get("loaded_text_description"), PermType.GameMasters)
+    const backup_cmd = mc.newCommand("backup", "一个基于 LSE引擎 的轻量级、高性能、功能全面的Minecraft服务器热备份插件", PermType.GameMasters)
     backup_cmd.setAlias("easybackup") // 设置别名
 
     backup_cmd.setEnum("ReloadAction", ["reload"]) // 添加枚举选项
@@ -1762,20 +1840,18 @@ function RegisterCmd() {
         switch (results.action) {
             case "reload": // 重载插件配置
                 let a = ReloadPlugin()[0] // 读取返回值数组的第一个
-                let b = ReloadPlugin()[1] // 读取返回值数组的第二个
-                let x = i18n.get("reload_text") + '\n' + i18n.get("reload_text_pluginConfig") + a + '\n' + i18n.get("reload_text_i18nLangConfig") + b + '\n'
-                let y = i18n.get("auto_backup_status") + scheduled_tasks_status + '\n' + i18n.get("auto_cleanup_status") + use_number_detection_status + '\n'
-                let z = i18n.get("debug_morelogs_status") + pluginConfig.get('Debug_MoreLogs') + '\n' + i18n.get('debug_morelogs_player_status') + pluginConfig.get('Debug_MoreLogs_Player') + '\n' + i18n.get('debug_morelogs_cron_status') + pluginConfig.get('Debug_MoreLogs_Cron')
+                let x = "重载中..." + '\n' + "配置文件：" + a + '\n' + '\n'
+                let y = "自动备份状态：" + scheduled_tasks_status + '\n' + "自动清理状态：" + use_number_detection_status + '\n'
+                let z = "Debug更多日志状态(控制台)：" + pluginConfig.get('Debug_MoreLogs') + '\n' + "Debug更多日志状态(玩家)：" + pluginConfig.get('Debug_MoreLogs_Player') + '\n' + "Debug更多日志状态(Cron)：" + pluginConfig.get('Debug_MoreLogs_Cron')
                 return output.success(x + y + z)
 
             case "init": // 初始化配置文件
                 InitPluginConfig()
                 let c = ReloadPlugin()[0] // 读取返回值数组的第一个
-                let d = ReloadPlugin()[1] // 读取返回值数组的第二个
-                let e = i18n.get("reload_text") + '\n' + i18n.get("reload_text_pluginConfig") + c + '\n' + i18n.get("reload_text_i18nLangConfig") + d + '\n'
-                let f = i18n.get("auto_backup_status") + scheduled_tasks_status + '\n' + i18n.get("auto_cleanup_status") + use_number_detection_status + '\n'
-                let g = i18n.get("debug_morelogs_status") + pluginConfig.get('Debug_MoreLogs') + '\n' + i18n.get('debug_morelogs_player_status') + pluginConfig.get('Debug_MoreLogs_Player') + '\n' + i18n.get('debug_morelogs_cron_status') + pluginConfig.get('Debug_MoreLogs_Cron')
-                return output.success(i18n.get("init_config_file_success") + '\n' + e + f + g)
+                let e = "重载中..." + '\n' + "配置文件：" + c + '\n' + '\n'
+                let f = "自动备份状态：" + scheduled_tasks_status + '\n' + "自动清理状态：" + use_number_detection_status + '\n'
+                let g = "Debug更多日志状态(控制台)：" + pluginConfig.get('Debug_MoreLogs') + '\n' + "Debug更多日志状态(玩家)：" + pluginConfig.get('Debug_MoreLogs_Player') + '\n' + "Debug更多日志状态(Cron)：" + pluginConfig.get('Debug_MoreLogs_Cron')
+                return output.success("初始化文件成功" + '\n' + e + f + g)
         }
 
         // 默认/backup指令后执行的代码
@@ -1804,7 +1880,7 @@ function RegisterCmd() {
         if (origin.typeName == "Player") {
             pl = mc.getPlayer(origin.player.realName)
             if (!pl.isOP()) {
-                pl.tell(`§c[EasyBackuper] §f${i18n.get("restore_no_permission")}`)
+                pl.tell(`§c[EasyBackuper] §f您没有权限执行此操作！`)
                 return output.success()
             }
         }
@@ -1824,9 +1900,9 @@ function RegisterCmd() {
             // 显示帮助信息
             if (origin.typeName == "Player") {
                 pl = mc.getPlayer(origin.player.realName)
-                pl.tell(`§a[EasyBackuper] §f${i18n.get("restore_help_player")}`)
+                pl.tell(`§a[EasyBackuper] §f回档命令帮助:\n/restore - 显示此帮助信息\n/restore list <数量> - 列出指定数量的备份\n/restore <索引> - 回档到指定索引的备份`)
             } else {
-                logger.log(i18n.get("restore_help_console"))
+                logger.log("回档命令帮助:\n/restore - 显示此帮助信息\n/restore list <数量> - 列出指定数量的备份\n/restore <索引> - 回档到指定索引的备份")
             }
         }
 
@@ -1847,37 +1923,45 @@ function Loadplugin() {
     // NOTE: 输出插件LOGO
     logger.setTitle(`\x1b[32m${plugin_name}\x1b[0m`) // 设置日志头
     pluginPrint(`
-===============================================================================================================
-     ********                             ******                     **            
-    /**/////                     **   ** /*////**                   /**             ******                
-    /**        ******    ****** //** **  /*   /**   ******    ***** /**  ** **   ** /**///**  *****  ******
-    /*******  //////**  **////   //***   /******   //////**  **////*/** ** /**  /** /**  /** **///**//**//*
-    /**////    ******* //*****    /**    /*//// **  ******* /**  // /****  /**  /** /****** /******* /** / 
-    /**       **////**  /////**   **     /*    /** **////** /**   **/**/** /**  /** /**///  /**////  /**   
-    /********//******** ******   **      /******* //********//***** /**//**//****** /**     //******/***   
-    ////////  //////// //////   //       ///////   ////////  /////  //  //  /////// /*     ////// ///    
-                            \x1b[33m`+ i18n.get("loaded_text_author") + `：` + i18n.get("loaded_text_author_nickname") + `                        \x1b[1;30;47m` + i18n.get("loaded_text_version") + `：${plugin_version}[${i18nLocaleName}]\x1b[0m
-===============================================================================================================`)
+███████╗ █████╗ ███████╗██╗   ██╗██████╗  █████╗  ██████╗██╗  ██╗██╗   ██╗██████╗ ███████╗██████╗             
+██╔════╝██╔══██╗██╔════╝╚██╗ ██╔╝██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██║   ██║██╔══██╗██╔════╝██╔══██╗                
+█████╗  ███████║███████╗ ╚████╔╝ ██████╔╝███████║██║     █████╔╝ ██║   ██║██████╔╝█████╗  ██████╔╝
+██╔══╝  ██╔══██║╚════██║  ╚██╔╝  ██╔══██╗██╔══██║██║     ██╔═██╗ ██║   ██║██╔═══╝ ██╔══╝  ██╔══██╗
+███████╗██║  ██║███████║   ██║   ██████╔╝██║  ██║╚██████╗██║  ██╗╚██████╔╝██║     ███████╗██║  ██║ 
+╚══════╝╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═════╝ ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═╝   `)
+    pluginPrint(`作者：梦涵LOVE          版本：${plugin_version}`)
+    pluginPrint("================================================================================")
+    pluginPrint(`${plugin_name} - ${plugin_description}`)
+    pluginPrint("感谢您使用Easy系列插件！")
+    pluginPrint(`本插件使用 ${plugin_license} 许可证协议发布`)
+    pluginPrint(`GitHub 仓库：${plugin_github_link}`)
+    pluginPrint(`插件MineBBS资源帖：${plugin_minebbs_link}`)
+    pluginPrint("Easy系列插件交流群：1083195477")
+    pluginPrint(`作者：梦涵LOVE | 版本：${plugin_version}`)
+    pluginPrint("================================================================================")
 
-
-    pluginPrint(`\x1b[36m==============================${plugin_name}===============================\x1b[0m`)
-    pluginPrint(`\x1b[37;43m` + i18n.get("loaded_text_plugin_installed_success") + `\x1b[0m`)
-    pluginPrint(`\x1b[37;43m` + i18n.get("loaded_text_version") + `: \x1b[0m\x1b[1;30;47m${plugin_version}\x1b[0m`)
-    pluginPrint(`\x1b[1;35m` + i18n.get("loaded_text_the_helps") + `\x1b[0m`)
-    pluginPrint(`\x1b[31m` + i18n.get("loaded_text_copyright") + `\x1b[0m`)
-    pluginPrint(`\x1b[33m` + i18n.get("loaded_text_plugins_github_storehouse") + `：` + i18n.get("loaded_text_plugins_github_storehouse_link") + `\x1b[0m`)
-    pluginPrint(`\x1b[36m` + i18n.get("loaded_text_the_latest_log") + `\x1b[0m  \x1b[33m` + i18n.get("loaded_text_author") + `：` + i18n.get("loaded_text_author_nickname") + `\x1b[0m`)
-    let a = i18n.get("auto_backup_status") + scheduled_tasks_status
-    let b = i18n.get("auto_cleanup_status") + use_number_detection_status
-    let c = i18n.get("debug_morelogs_status") + pluginConfig.get('Debug_MoreLogs')
-    let d = i18n.get('debug_morelogs_player_status') + pluginConfig.get('Debug_MoreLogs_Player')
-    let e = i18n.get('debug_morelogs_cron_status') + pluginConfig.get('Debug_MoreLogs_Cron')
+    let a = "自动备份状态：" + (scheduled_tasks_status ? "已启用" : "已禁用")
+    let b = "自动清理状态：" + (use_number_detection_status ? "已启用" : "已禁用")
+    let c = "Debug更多日志状态(控制台)：" + (pluginConfig.get('Debug_MoreLogs') ? "已启用" : "已禁用")
+    let d = "Debug更多日志状态(玩家)：" + (pluginConfig.get('Debug_MoreLogs_Player') ? "已启用" : "已禁用")
+    let e = "Debug更多日志状态(Cron)：" + (pluginConfig.get('Debug_MoreLogs_Cron') ? "已启用" : "已禁用")
+    let bstatsConf = pluginConfig.get("Bstats") || {};
+    let f = "BStats状态：" + (bstatsConf.EnableModule ? "已启用" : "已禁用")
     pluginPrint(a)
     pluginPrint(b)
     pluginPrint(c)
     pluginPrint(d)
     pluginPrint(e)
-    pluginPrint(`\x1b[36m==============================${plugin_name}===============================\x1b[0m`)
+    pluginPrint(f)
+    pluginPrint("================================================================================")
+
+    // 初始化BStats
+    try {
+        bstatsInstance = new BStatsImpl(29845);
+        bstatsInstance.start();
+    } catch (e) {
+        pluginPrint("BStats初始化失败: " + e, "ERROR");
+    }
 
     // 检查是否有回档标记文件
     const restore_marker_file = "./temp_restore/restore_marker.json"
@@ -1977,6 +2061,21 @@ function Loadplugin() {
         }
         // 注册指令
         RegisterCmd()
+
+        // TAG: 适配 EasyCheckUpdate
+        // #region 适配 EasyCheckUpdate
+        function CheckUpdate() {
+            return {
+                update_url: plugin_update_url,
+                plugin_version: plugin_version
+            }
+        }
+        if (!ll.hasExported("ecu", "EasyCheckUpdate")) {
+            pluginPrint("请安装 EasyCheckUpdate 插件以为本插件提供更新检查功能", "WARNING")
+        } else {
+            ll.exports(CheckUpdate, "ecu", `${plugin_name}`)
+        }
+        // #endregion
     })
     // NOTE: "onTick"
     mc.listen("onTick", () => {
