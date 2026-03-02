@@ -1,6 +1,12 @@
 {
-    "latest_version": "0.4.4",
+    "latest_version": "0.4.5",
     "versions": {
+        "0.4.5": {
+            "download_url": "https://raw.githubusercontent.com/MengHanLOVE1027/lse-easybackuper/refs/heads/main/EasyBackuper.js",
+            "update_content": "更新版本号为 v0.4.5，修复了部分 bug.",
+            "author": "梦涵LOVE",
+            "update_time": "2026-03-03 00:20:00"
+        },
         "0.4.4": {
             "download_url": "https://raw.githubusercontent.com/MengHanLOVE1027/lse-easybackuper/refs/heads/main/EasyBackuper.js",
             "update_content": "更新版本号为 v0.4.4，适配了 EasyCheckUpdate 插件，修复了部分 bug，支持BStats统计和多彩日志输出，不再支持多语言（太臃肿了）",

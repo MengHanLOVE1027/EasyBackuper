@@ -231,7 +231,7 @@ class BStatsImpl {
 // 声明常量
 const plugin_name = "EasyBackuper",
     plugin_name_smallest = "easybackuper",
-    plugin_version = "v0.4.4",
+    plugin_version = "v0.4.4.1",
     plugin_description = "一个基于 LSE引擎 的轻量级、高性能、功能全面的Minecraft服务器热备份插件",
     plugin_github_link = "https://github.com/MengHanLOVE1027/lse-easybackuper",
     plugin_minebbs_link = "https://www.minebbs.com/resources/easybackuper-eb.7771/",
@@ -467,7 +467,7 @@ function pluginPrint(text, level = "INFO") {
         case "INFO":
             logger.info(String(RandomColor(text)))
             break
-        case "SUCESS":
+        case "SUCCESS":
             logger.info(logger_head + String(RandomColor(text)))
             break
         case "DEBUG":
@@ -1116,6 +1116,7 @@ function Backup(pl, callback) {
             } else {
                 // 如果是文件，直接复制
                 File.copy(currentPath, backup_tmp_path)
+                copy_return = true
             }
         }
         // #endregion
@@ -1497,6 +1498,12 @@ function listBackups(origin, limit = 10) {
 function startRestore(origin, restore_index) {
     pluginPrint(formatString("开始回档操作，索引: %s", String(restore_index)), "INFO")
 
+    // 保存玩家名称，避免在回调中访问origin.player
+    let player_name = null;
+    if (origin && origin.typeName == "Player" && origin.player) {
+        player_name = origin.player.realName;
+    }
+
     // 检查origin对象是否存在
     if (typeof origin === 'undefined' || origin === null) {
         yes_no_console = 1
@@ -1617,17 +1624,33 @@ function startRestore(origin, restore_index) {
             pluginPrint("回档前备份当前的世界...", "INFO")
 
             // 使用回调函数来等待备份完成
-            Backup(origin, (success, archivePath) => {
+            // 保存玩家对象，避免在回调中访问origin.player
+            let restore_player = null;
+            if (origin && origin.typeName == "Player" && origin.player) {
+                restore_player = origin.player;
+            }
+
+            Backup(restore_player, (success, archivePath) => {
                 if (success) {
                     pluginPrint(`备份完成: ${archivePath}`, "SUCCESS")
-                    // 继续回档流程
-                    continueRestore(origin, restore_index, backup_files)
+                    // 继续回档流程，传递玩家名称而不是origin对象
+                    let player_name = null;
+                    if (restore_player) {
+                        player_name = restore_player.realName;
+                    }
+                    continueRestore(player_name, restore_index, backup_files)
                 } else {
                     pluginPrint("备份失败，取消回档操作", "ERROR")
                     const msg = `§c[EasyBackuper] §f备份失败，取消回档操作`
-                    if (yes_no_console == 0) {
-                        pl = mc.getPlayer(origin.player.realName)
-                        pl.tell(msg)
+                    let player_name = null;
+                    if (restore_player) {
+                        player_name = restore_player.realName;
+                    }
+                    if (yes_no_console == 0 && player_name) {
+                        pl = mc.getPlayer(player_name)
+                        if (pl) {
+                            pl.tell(msg)
+                        }
                     }
                     return
                 }
@@ -1642,9 +1665,11 @@ function startRestore(origin, restore_index) {
     } catch (e) {
         pluginPrint(`回档操作失败: ${e}`, "ERROR")
         const msg = `§c[EasyBackuper] §f回档操作失败: ${e}`
-        if (yes_no_console == 0) {
-            pl = mc.getPlayer(origin.player.realName)
-            pl.tell(msg)
+        if (yes_no_console == 0 && player_name) {
+            pl = mc.getPlayer(player_name)
+            if (pl) {
+                pl.tell(msg)
+            }
         }
     }
 }
@@ -1652,16 +1677,12 @@ function startRestore(origin, restore_index) {
 
 /**
  * 继续回档操作（在备份完成后调用）
- * @param {CommandOrigin} origin 命令发送者
+ * @param {String} player_name 玩家名称
  * @param {Number} restore_index 备份索引（从1开始）
  * @param {Array} backup_files 备份文件列表
  */
-function continueRestore(origin, restore_index, backup_files) {
-    // 保存玩家名称，避免在回调中访问origin.player
-    let player_name = null;
-    if (origin && origin.typeName == "Player" && origin.player) {
-        player_name = origin.player.realName;
-    }
+function continueRestore(player_name, restore_index, backup_files) {
+    // 使用传入的玩家名称
 
     try {
         pluginPrint("开始处理回档请求...", "INFO")
@@ -2023,7 +2044,7 @@ function Loadplugin() {
 
             // 移动解压的世界文件夹到目标位置
             pluginPrint(`正在移动世界文件夹: ${extracted_world_dir} -> ${marker_data.world_path}`, "INFO")
-            File.copy(extracted_world_dir, marker_data.world_path)
+            copyDirectory(extracted_world_dir, marker_data.world_path)
             pluginPrint("世界文件夹已移动", "SUCCESS")
 
             // 删除解压的临时文件夹
